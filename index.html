@@ -48,6 +48,98 @@
     .table-header { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
     .table-row { border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
     .table-row:hover { background: #f8fafc; }
+
+    /* ── Mobile Responsive Styles ── */
+    .mobile-menu-btn { display: none; }
+    .sidebar-overlay { display: none; }
+
+    @media (max-width: 768px) {
+      /* Sidebar: hidden by default on mobile, shown as overlay */
+      .app-sidebar {
+        position: fixed !important;
+        left: -280px;
+        top: 0;
+        bottom: 0;
+        z-index: 50;
+        width: 260px !important;
+        transition: left 0.3s ease;
+      }
+      .app-sidebar.open { left: 0; }
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 40;
+      }
+      .sidebar-overlay.open { display: block; }
+
+      /* Hamburger button */
+      .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        font-size: 1.25rem;
+        cursor: pointer;
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 35;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      /* Main content takes full width */
+      .app-main { padding-top: 60px !important; }
+      .app-main > div { padding: 1rem !important; }
+
+      /* Tab buttons wrap */
+      .tab-nav { flex-wrap: wrap !important; gap: 0.375rem !important; }
+      .tab-nav button { font-size: 0.65rem !important; padding: 0.375rem 0.625rem !important; white-space: nowrap; }
+
+      /* Dashboard header stacks */
+      .dash-header { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
+
+      /* Grids go single column */
+      .grid-cols-4, .grid-cols-5, .grid-cols-3 { grid-template-columns: 1fr !important; }
+      .stat-mini-grid.grid-cols-4 { grid-template-columns: repeat(4, 1fr) !important; }
+      .grid.md\\:grid-cols-2 { grid-template-columns: 1fr !important; }
+      .grid.md\\:grid-cols-3 { grid-template-columns: 1fr !important; }
+
+      /* Tables scroll horizontally */
+      .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -0.5rem; padding: 0 0.5rem; }
+      .table-wrap table { min-width: 600px; }
+
+      /* Student banner stacks */
+      .student-banner { flex-direction: column !important; text-align: center; gap: 1rem !important; padding: 1.25rem !important; }
+
+      /* Form grids go single column */
+      form.grid { grid-template-columns: 1fr !important; }
+      form .col-span-4 { grid-column: span 1 !important; }
+
+      /* Leave cards stack */
+      .leave-card { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
+      .leave-card > div:last-child { width: 100%; display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 0.5rem; }
+
+      /* Admin add-user form */
+      form.grid-cols-5 { grid-template-columns: 1fr !important; }
+
+      /* Settings grid */
+      .grid-cols-2 { grid-template-columns: 1fr !important; }
+
+      /* History grid */
+      .grid-cols-3 { grid-template-columns: 1fr !important; }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+      .grid-cols-5 { grid-template-columns: repeat(3, 1fr) !important; }
+      .tab-nav { flex-wrap: wrap !important; }
+    }
   </style>
 </head>
 <body>
@@ -423,12 +515,12 @@
       return (
         <div className="p-6 max-w-7xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="dash-header flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-800">Faculty Dashboard</h1>
               <p className="text-xs text-slate-500">{user.name} · {user.department} Department</p>
             </div>
-            <div className="flex gap-2">
+            <div className="tab-nav flex gap-2">
               {[
                 { id: 'mark', label: '✅ Daily Attendance' },
                 { id: 'history', label: '📅 Past Edits' },
@@ -473,7 +565,7 @@
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <div className="flex items-center justify-between mb-4">
+                <div className="dash-header flex items-center justify-between mb-4">
                   <h3 className="font-bold text-slate-800 text-sm">Student Roster ({roster.length} Students)</h3>
                   <div className="flex gap-2">
                     <button onClick={() => markAll('present')} className="btn-success text-xs">Mark All Present</button>
@@ -481,7 +573,7 @@
                   </div>
                 </div>
 
-                <table className="w-full">
+                <div className="table-wrap"><table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-4 py-2.5 text-left table-header">Roll No</th>
@@ -506,7 +598,7 @@
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
 
                 <div className="mt-5 flex justify-end">
                   <button onClick={handleSave} className="btn-primary text-sm px-8 py-3">💾 Save Attendance Session</button>
@@ -534,7 +626,7 @@
                 </div>
               </div>
 
-              <table className="w-full">
+              <div className="table-wrap"><table className="w-full">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-2.5 text-left table-header">Roll No</th>
@@ -561,7 +653,7 @@
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
 
               <div className="mt-5 flex justify-end">
                 <button onClick={handleSave} className="btn-primary text-sm px-6 py-2.5">Save Modification & Generate Audit Log</button>
@@ -573,7 +665,7 @@
           {tab === 'audit' && (
             <div className="bg-white rounded-2xl p-6 border border-slate-100">
               <h3 className="font-bold text-slate-800 mb-4 text-base">My Audit Log Trail</h3>
-              <table className="w-full">
+              <div className="table-wrap"><table className="w-full">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-2.5 text-left table-header">Timestamp</th>
@@ -596,7 +688,7 @@
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           )}
 
@@ -606,7 +698,7 @@
               <h3 className="font-bold text-slate-800 mb-4 text-base">Student Leave & OD Applications</h3>
               <div className="space-y-3">
                 {leaves.map(l => (
-                  <div key={l.id} className="p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+                  <div key={l.id} className="leave-card p-4 rounded-xl border border-slate-100 flex items-center justify-between">
                     <div>
                       <p className="font-bold text-slate-800 text-sm">{l.studentName} ({l.rollNumber})</p>
                       <p className="text-xs text-slate-500">Reason: {l.reason} · Dates: {l.fromDate} to {l.toDate}</p>
@@ -651,7 +743,7 @@
       return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
           {/* Header Banner */}
-          <div className="bg-gradient-to-r from-purple-700 to-indigo-800 rounded-3xl p-6 text-white flex items-center justify-between shadow-xl">
+          <div className="student-banner bg-gradient-to-r from-purple-700 to-indigo-800 rounded-3xl p-6 text-white flex items-center justify-between shadow-xl">
             <div>
               <p className="text-purple-200 text-xs font-semibold uppercase tracking-wider">Student Dashboard</p>
               <h1 className="text-2xl font-bold mt-1">{user.name} ({user.rollNumber})</h1>
@@ -669,7 +761,7 @@
                   <span className={`text-sm font-black ${s.isLow ? 'text-red-600' : 'text-emerald-600'}`}>{s.percentage}%</span>
                 </div>
                 <h4 className="font-bold text-slate-800 text-sm mb-3">{s.courseName}</h4>
-                <div className="grid grid-cols-4 gap-1 text-center text-xs">
+                <div className="grid grid-cols-4 stat-mini-grid gap-1 text-center text-xs">
                   <div className="bg-emerald-50 text-emerald-800 py-1 rounded font-bold">{s.present} P</div>
                   <div className="bg-red-50 text-red-800 py-1 rounded font-bold">{s.absent} A</div>
                   <div className="bg-amber-50 text-amber-800 py-1 rounded font-bold">{s.late} L</div>
@@ -682,7 +774,7 @@
           {/* Date-wise Log with Staff Update Indicators */}
           <div className="bg-white rounded-2xl p-6 border border-slate-100">
             <h3 className="font-bold text-slate-800 text-sm mb-4">Date-wise Attendance Log & Modification Badges</h3>
-            <table className="w-full">
+            <div className="table-wrap"><table className="w-full">
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-2 text-left table-header">Date</th>
@@ -703,7 +795,7 @@
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           {/* Apply Leave / OD */}
@@ -777,12 +869,12 @@
 
       return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="dash-header flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-800">Administrator Control Center</h1>
               <p className="text-xs text-slate-500">{settings.institutionName} · Academic Year {settings.academicYear}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="tab-nav flex gap-2">
               {[
                 { id: 'users', label: '👥 User Management' },
                 { id: 'courses', label: '📚 Course Management' },
@@ -812,7 +904,7 @@
                 <button type="submit" className="btn-primary text-xs">Add User</button>
               </form>
 
-              <table className="w-full">
+              <div className="table-wrap"><table className="w-full">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-2 text-left table-header">Name</th>
@@ -833,7 +925,7 @@
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           )}
 
@@ -843,7 +935,7 @@
                 <h3 className="font-bold text-slate-800 text-sm">System-Wide Master Audit Trail</h3>
                 <button onClick={exportAuditCSV} className="btn-secondary text-xs">📥 Export CSV</button>
               </div>
-              <table className="w-full">
+              <div className="table-wrap"><table className="w-full">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-2 text-left table-header">Timestamp</th>
@@ -864,7 +956,7 @@
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           )}
 
@@ -891,12 +983,19 @@
     // Main App Shell
     function App() {
       const { user, logout } = useAuth();
+      const [sidebarOpen, setSidebarOpen] = useState(false);
       if (!user) return <LoginPage />;
 
       return (
         <div className="min-h-screen bg-slate-50 flex">
+          {/* Mobile Hamburger Button */}
+          <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
+
+          {/* Sidebar Overlay (mobile) */}
+          <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
+
           {/* Sidebar */}
-          <div className="w-64 bg-slate-900 text-white p-5 flex flex-col justify-between">
+          <div className={`app-sidebar w-64 bg-slate-900 text-white p-5 flex flex-col justify-between ${sidebarOpen ? 'open' : ''}`}>
             <div>
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-xl font-bold">🎓</div>
@@ -912,11 +1011,11 @@
               </div>
             </div>
 
-            <button onClick={logout} className="w-full py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold text-slate-300 transition-colors">🚪 Logout</button>
+            <button onClick={() => { logout(); setSidebarOpen(false); }} className="w-full py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold text-slate-300 transition-colors">🚪 Logout</button>
           </div>
 
           {/* Main View */}
-          <div className="flex-1 overflow-auto">
+          <div className="app-main flex-1 overflow-auto">
             {user.role === 'faculty' && <FacultyView />}
             {user.role === 'student' && <StudentView />}
             {user.role === 'admin' && <AdminView />}

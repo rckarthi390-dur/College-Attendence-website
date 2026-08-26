@@ -1,0 +1,154 @@
+================================================================================
+COLLEGE ATTENDANCE MANAGEMENT SYSTEM — OVERVIEW & WORKFLOW DOCUMENTATION
+================================================================================
+Generated: 2026-08-26
+Target Path: C:\Users\haris\Downloads\College Attendence website\system_overview_and_workflow.txt
+
+--------------------------------------------------------------------------------
+1. SYSTEM EXECUTIVE OVERVIEW
+--------------------------------------------------------------------------------
+The College Attendance Management System is a role-based web application designed
+to handle daily attendance marking, historical modifications with automated audit 
+logging, class analytics, student leave/OD applications, and institutional administration.
+
+Key System Highlights:
+• 3 Role-Based Dashboards: Faculty/Staff, Student, and Administrator.
+• Standalone Single-File & Full Modular React Implementations.
+• Local Storage Persistence (no cloud or complex DB required for local demo).
+• Express.js + LowDB API Backend included for full-stack deployment.
+• 100% Mobile Responsive UI built with Tailwind CSS & Google Fonts (Inter).
+
+--------------------------------------------------------------------------------
+2. USER ROLES & DETAILED WORKFLOWS
+--------------------------------------------------------------------------------
+
+[ROLE 1: FACULTY / STAFF DASHBOARD]
+Workflow 1.1: Daily Manual Attendance Marking
+  - Step 1: Select Department, Course/Subject, Section (e.g. Sec A), and Date.
+  - Step 2: System automatically loads the student roster for that class.
+  - Step 3: Faculty can use quick bulk shortcuts: "Mark All Present" or "Mark All Absent".
+  - Step 4: Toggle individual student statuses:
+            • Present (P)
+            • Absent (A)
+            • Late (L)
+            • On-Duty (OD)
+  - Step 5: Search for specific students using the real-time search bar.
+  - Step 6: Click "Save Attendance Session" to persist records.
+
+Workflow 1.2: Unlimited Historical Attendance Modifications
+  - Step 1: Open the Date Picker and select ANY past date or session.
+  - Step 2: Staff can edit attendance entries without session locks, time limits, 
+            or administrator approval requirements.
+  - Step 3: On saving, the system automatically captures modification history.
+
+Workflow 1.3: Audit Log Generation
+  - Step 1: Automatically records an audit entry whenever past records are changed:
+            • Faculty ID / Name
+            • Timestamp (Date & Time)
+            • Old Status → New Status (e.g. Absent → On-Duty)
+            • Reason for modification
+  - Step 2: View personal audit log history directly in the "My Audit Log" tab.
+
+Workflow 1.4: Class Analytics & Low Attendance Alerts
+  - Step 1: Visual summaries powered by Recharts (Bar chart & Pie chart).
+  - Step 2: Automatic flagging of students with attendance below 75% threshold.
+  - Step 3: Export attendance data to CSV file with one click.
+
+Workflow 1.5: Student Leave & OD Request Review
+  - Step 1: View incoming Absence Leave and On-Duty (OD) applications from students.
+  - Step 2: Click "Approve" or "Reject" to update request status.
+
+
+[ROLE 2: STUDENT DASHBOARD]
+Workflow 2.1: Overview & Subject Breakdowns
+  - Step 1: Circular Percentage Gauge displaying overall attendance percentage.
+  - Step 2: Subject-wise breakdown cards with color-coded status badges:
+            • Green Badge: ≥ 75% (Passing / Meeting threshold)
+            • Red Badge:   < 75% (Low attendance alert)
+  - Step 3: Breakdown metrics per subject: Present count, Absent count, Late count, OD count.
+
+Workflow 2.2: Attendance Log & Update Badges
+  - Step 1: Detailed date-wise attendance status log per subject.
+  - Step 2: Clear visual indicators: entries modified by staff display a highlighted 
+            "UPDATED BY FACULTY" badge to show that a past entry was revised.
+
+Workflow 2.3: Leave & On-Duty (OD) Application
+  - Step 1: Form to select Request Type: "Absence Leave" or "On-Duty (OD)".
+  - Step 2: Fill From Date, To Date, and Reason / Justification.
+  - Step 3: Submit application to send it to Faculty & Admin for approval.
+  - Step 4: Track status (Pending, Approved, Rejected) or cancel pending requests.
+
+
+[ROLE 3: ADMIN DASHBOARD]
+Workflow 3.1: User Management (CRUD)
+  - Step 1: View all system users (Students, Faculty, Administrators).
+  - Step 2: Search by Name, Email, Roll Number, or Employee ID.
+  - Step 3: Filter by Role or Department.
+  - Step 4: Add new users or edit existing user details (Roll No, Section, Year, Dept).
+  - Step 5: Remove users permanently.
+
+Workflow 3.2: Course & Department Management
+  - Step 1: Create, edit, and delete Courses and Departments.
+  - Step 2: Assign HODs (Heads of Department) and Faculty instructors to courses.
+
+Workflow 3.3: Master Audit Log
+  - Step 1: System-wide audit trail recording all staff attendance modifications over time.
+  - Step 2: Filter by Faculty Member, Course, or Date range.
+  - Step 3: Click "Export Audit Trail (CSV)" to download the complete audit history.
+
+Workflow 3.4: System Settings & Official Reports
+  - Step 1: Configure Mandatory Attendance Threshold (e.g. 75% rule).
+  - Step 2: Update Institution Name and Academic Year (e.g. 2024-25).
+  - Step 3: Click "Download Master PDF Report" to generate an official institutional report 
+            containing table formatting, color badges, and threshold compliance status.
+
+--------------------------------------------------------------------------------
+3. DEMO LOGIN CREDENTIALS
+--------------------------------------------------------------------------------
+Access the app locally and click any demo card or use these credentials:
+
+1. Faculty / Staff:
+   • Email:    anand@college.edu
+   • Password: password
+   • Role:     Faculty (Computer Science)
+
+2. Student:
+   • Email:    arjun@student.edu
+   • Password: password
+   • Role:     Student (Roll: CS21001, Section A, Year 3)
+
+3. Administrator:
+   • Email:    admin@college.edu
+   • Password: password
+   • Role:     Admin (Full Control)
+
+--------------------------------------------------------------------------------
+4. FILE LOCATIONS & HOW TO RUN
+--------------------------------------------------------------------------------
+Folder Path: C:\Users\haris\Downloads\College Attendence website
+
+Files Available:
+1. index.html  <-- Single-file Standalone SPA (Runs in browser instantly!)
+   • Open directly by double-clicking index.html OR visit http://localhost:8000
+
+2. system_overview_and_workflow.txt  <-- This Documentation File
+
+3. College Attendence website/  <-- Full Modular Source Code
+   ├── client/                  <-- React 18 + Tailwind CSS + Vite
+   │   ├── src/App.jsx
+   │   ├── src/pages/faculty/
+   │   ├── src/pages/student/
+   │   └── src/pages/admin/
+   └── server/                  <-- Express.js + LowDB Backend API
+       ├── index.js
+       └── routes/
+
+To Run Local Web Server:
+  Option A (Direct Browser): Double-click `index.html` in Windows Explorer.
+  Option B (Local Server):   Open terminal in directory and run:
+                             php -S localhost:8000
+                             Then open http://localhost:8000 in your web browser.
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================

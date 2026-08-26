@@ -1,0 +1,76 @@
+================================================================================
+HOW TO HOST YOUR COLLEGE ATTENDANCE SYSTEM ON GITHUB PAGES (FREE & LIVE IN 2 MINS)
+================================================================================
+
+Because your `index.html` file is a complete standalone web application 
+(using Tailwind CSS, React 18, and Recharts CDNs), hosting it on GitHub Pages 
+requires ZERO build steps and ZERO server setups!
+
+Follow either Method 1 (Web Browser Upload) or Method 2 (Git Terminal).
+
+================================================================================
+METHOD 1: UPLOAD DIRECTLY VIA GITHUB WEBSITE (EASIEST — NO TERMINAL NEEDED)
+================================================================================
+
+STEP 1: Create a Repository on GitHub
+  1. Go to https://github.com/ and log in.
+  2. Click the green "New" button (or the "+" icon at top right -> "New repository").
+  3. Enter a Repository Name: `college-attendance-system`
+  4. Ensure it is set to "Public".
+  5. Do NOT check "Add a README file" (keep it empty).
+  6. Click "Create repository".
+
+STEP 2: Upload index.html
+  1. On the new repository page, click the link that says:
+     "uploading an existing file"
+  2. Open your local folder:
+     C:\Users\haris\Downloads\College Attendence website
+  3. Drag and drop `index.html` (and `system_overview_and_workflow.txt` if you like) 
+     into the browser box.
+  4. At the bottom, click the green "Commit changes" button.
+
+STEP 3: Enable GitHub Pages
+  1. In your GitHub repository, click the "Settings" tab at the top right.
+  2. On the left sidebar menu, click "Pages".
+  3. Under "Build and deployment" -> "Source", select "Deploy from a branch".
+  4. Under "Branch", change "None" to "main" (or "master") and leave folder as "/ (root)".
+  5. Click "Save".
+
+STEP 4: Access Your Live Website!
+  - Wait about 30 to 60 seconds.
+  - Refresh the Pages settings tab.
+  - You will see a banner with your live website URL:
+    https://<your-github-username>.github.io/college-attendance-system/
+
+================================================================================
+METHOD 2: DEPLOY VIA GIT TERMINAL COMMANDS
+================================================================================
+
+If you prefer using Command Prompt / PowerShell:
+
+1. Open PowerShell and navigate to the project directory:
+   cd "C:\Users\haris\Downloads\College Attendence website"
+
+2. Initialize Git repository and commit files:
+   git init
+   git add index.html system_overview_and_workflow.txt README.txt
+   git commit -m "Initial commit - College Attendance Management System"
+
+3. Create a public repository named `college-attendance-system` on GitHub.
+
+4. Connect local repo to GitHub and push:
+   git branch -M main
+   git remote add origin https://github.com/YOUR_GITHUB_USERNAME/college-attendance-system.git
+   git push -u origin main
+
+5. Go to GitHub Repo -> Settings -> Pages -> Source: `main` branch -> Save!
+
+================================================================================
+WHY THIS WORKS SO WELL FOR GITHUB PAGES:
+================================================================================
+• LocalStorage Persistence: All user data (attendance records, audit logs, 
+  leaves, settings) will persist smoothly in your browser's local storage.
+• No Server Maintenance: Runs 100% client-side with 99.99% uptime hosted by GitHub.
+• Instant Sharing: Share the GitHub Pages URL with anyone and they can try all 
+  3 demo roles (Faculty, Student, Admin) directly from their phone or laptop!
+================================================================================
