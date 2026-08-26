@@ -893,16 +893,37 @@
     // Admin View
     function AdminView() {
       const { user } = useAuth();
-      const { getUsers, addUser, deleteUser, getCourses, addCourse, deleteCourse, getAuditLog, getSettings, updateSettings } = useApp();
+      const { getUsers, addUser, deleteUser, getCourses, addCourse, deleteCourse, getDepartments, getAuditLog, getSettings, updateSettings, getStudentAttendanceSummary } = useApp();
       const [tab, setTab] = useState('users');
 
       const users = getUsers();
       const courses = getCourses();
+      const departments = getDepartments ? getDepartments() : [];
       const auditLogs = getAuditLog();
       const settings = getSettings();
 
       const [newU, setNewU] = useState({ name: '', email: '', role: 'student', department: 'Computer Science', password: 'password' });
       const [newC, setNewC] = useState({ name: '', code: '', department: 'Computer Science', credits: 4 });
+
+      // PDF & Report Filter State
+      const [pdfRoleFilter, setPdfRoleFilter] = useState('all');
+      const [pdfDeptFilter, setPdfDeptFilter] = useState('all');
+
+      // Compute unique department list
+      const deptList = useMemo(() => {
+        const set = new Set(departments.map(d => d.name));
+        users.forEach(u => { if (u.department) set.add(u.department); });
+        return Array.from(set);
+      }, [departments, users]);
+
+      // Filtered users according to selected role & department
+      const filteredUsers = useMemo(() => {
+        return users.filter(u => {
+          const matchRole = pdfRoleFilter === 'all' || u.role === pdfRoleFilter;
+          const matchDept = pdfDeptFilter === 'all' || u.department === pdfDeptFilter;
+          return matchRole && matchDept;
+        });
+      }, [users, pdfRoleFilter, pdfDeptFilter]);
 
       const exportAuditCSV = () => {
         const rows = [['Audit ID', 'Timestamp', 'Date', 'Faculty', 'Student', 'Course', 'Old Status', 'New Status', 'Reason']];
@@ -915,16 +936,71 @@
       const exportPDF = () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
+
+        // Title & Header
         doc.setFontSize(16);
-        doc.text(settings.institutionName, 14, 20);
+        doc.setTextColor(26, 35, 126);
+        doc.text(settings.institutionName, 14, 18);
+
         doc.setFontSize(12);
-        doc.text(`Official Attendance Summary Report (${settings.academicYear})`, 14, 28);
+        doc.setTextColor(51, 65, 85);
+        doc.text(`Official Attendance & Institutional Report (${settings.academicYear})`, 14, 26);
+
+        // Filter details subtitle
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139);
+        const roleLabel = pdfRoleFilter === 'all' ? 'All Roles' : pdfRoleFilter.toUpperCase();
+        const deptLabel = pdfDeptFilter === 'all' ? 'All Departments' : pdfDeptFilter;
+        doc.text(`Filters Applied: Role = [${roleLabel}] | Department = [${deptLabel}] | Total Records: ${filteredUsers.length}`, 14, 33);
+
         doc.autoTable({
-          startY: 35,
-          head: [['Roll No', 'Student', 'Role', 'Dept']],
-          body: users.map(u => [u.rollNumber || u.employeeId || '—', u.name, u.role, u.department]),
+          startY: 38,
+          head: [['ID / Roll No', 'Name', 'Role', 'Department', 'Email', 'Attendance %']],
+          body: filteredUsers.map(u => {
+            let attPerc = '—';
+            if (u.role === 'student') {
+              const summary = getStudentAttendanceSummary(u.id);
+              attPerc = `${summary.overallPercentage}%`;
+            }
+            return [
+              u.rollNumber || u.employeeId || '—',
+              u.name,
+              u.role.toUpperCase(),
+              u.department,
+              u.email,
+              attPerc
+            ];
+          }),
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          styles: { fontSize: 8, cellPadding: 3 }
         });
-        doc.save('master_attendance_report.pdf');
+
+        const fileRole = pdfRoleFilter.toLowerCase();
+        const fileDept = pdfDeptFilter.toLowerCase().replace(/\s+/g, '_');
+        doc.save(`attendance_report_${fileRole}_${fileDept}.pdf`);
+      };
+
+      const exportFilteredCSV = () => {
+        const rows = [['ID / Roll No', 'Name', 'Role', 'Department', 'Email', 'Attendance %']];
+        filteredUsers.forEach(u => {
+          let attPerc = '—';
+          if (u.role === 'student') {
+            const summary = getStudentAttendanceSummary(u.id);
+            attPerc = `${summary.overallPercentage}%`;
+          }
+          rows.push([
+            u.rollNumber || u.employeeId || '—',
+            `"${u.name}"`,
+            u.role,
+            `"${u.department}"`,
+            u.email,
+            attPerc
+          ]);
+        });
+        const csv = rows.map(r => r.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `report_${pdfRoleFilter}_${pdfDeptFilter}.csv`; a.click();
       };
 
       return (
@@ -1021,19 +1097,115 @@
           )}
 
           {tab === 'settings' && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 space-y-4">
-              <h3 className="font-bold text-slate-800 text-sm">Institutional Policy & Reports</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Mandatory Threshold (%)</label>
-                  <input type="number" value={settings.attendanceThreshold} onChange={e => updateSettings({ attendanceThreshold: Number(e.target.value) })} className="input-field" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Institution Name</label>
-                  <input type="text" value={settings.institutionName} onChange={e => updateSettings({ institutionName: e.target.value })} className="input-field" />
+            <div className="space-y-6">
+              {/* Institution Settings Card */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 space-y-4">
+                <h3 className="font-bold text-slate-800 text-base">Institutional Policies & Thresholds</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Mandatory Attendance Threshold (%)</label>
+                    <input type="number" value={settings.attendanceThreshold} onChange={e => updateSettings({ attendanceThreshold: Number(e.target.value) })} className="input-field" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Institution Name</label>
+                    <input type="text" value={settings.institutionName} onChange={e => updateSettings({ institutionName: e.target.value })} className="input-field" />
+                  </div>
                 </div>
               </div>
-              <button onClick={exportPDF} className="btn-primary text-xs px-6 py-2.5">📄 Download Master PDF Report</button>
+
+              {/* Filtered PDF & Report Generator Card */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-base">Customized Attendance & Roster PDF Generator</h3>
+                    <p className="text-xs text-slate-500">Filter reports specifically by Role, Department, or both before exporting</p>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-200">
+                    {filteredUsers.length} Matching Records
+                  </span>
+                </div>
+
+                {/* Filter Controls */}
+                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Filter by Role</label>
+                    <select value={pdfRoleFilter} onChange={e => setPdfRoleFilter(e.target.value)} className="input-field bg-white">
+                      <option value="all">🌐 All Roles (Students, Faculty, Admins)</option>
+                      <option value="student">🎓 Students Only</option>
+                      <option value="faculty">👨‍🏫 Faculty / Staff Only</option>
+                      <option value="admin">🛡️ Administrators Only</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Filter by Department</label>
+                    <select value={pdfDeptFilter} onChange={e => setPdfDeptFilter(e.target.value)} className="input-field bg-white">
+                      <option value="all">🏢 All Departments</option>
+                      {deptList.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Live Preview of Matching Records */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Report Preview ({filteredUsers.length} entries)</h4>
+                    <div className="flex gap-2">
+                      <button onClick={exportFilteredCSV} className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5">
+                        <span>📥</span> Export Filtered CSV
+                      </button>
+                      <button onClick={exportPDF} className="btn-primary text-xs px-4 py-1.5 flex items-center gap-1.5">
+                        <span>📄</span> Download Filtered PDF Report
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="table-wrap border border-slate-100 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                    <table className="w-full">
+                      <thead className="bg-slate-100 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left table-header">ID / Roll No</th>
+                          <th className="px-3 py-2 text-left table-header">Name</th>
+                          <th className="px-3 py-2 text-left table-header">Role</th>
+                          <th className="px-3 py-2 text-left table-header">Department</th>
+                          <th className="px-3 py-2 text-right table-header">Attendance %</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {filteredUsers.length === 0 ? (
+                          <tr>
+                            <td colSpan="5" className="text-center py-6 text-slate-400 text-xs">
+                              No records match the selected filters.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredUsers.map(u => {
+                            let att = '—';
+                            if (u.role === 'student') {
+                              const s = getStudentAttendanceSummary(u.id);
+                              att = `${s.overallPercentage}%`;
+                            }
+                            return (
+                              <tr key={u.id} className="table-row text-xs">
+                                <td className="px-3 py-2 font-mono text-slate-600">{u.rollNumber || u.employeeId || '—'}</td>
+                                <td className="px-3 py-2 font-bold text-slate-800">{u.name}</td>
+                                <td className="px-3 py-2">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${u.role === 'student' ? 'bg-purple-100 text-purple-700' : u.role === 'faculty' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {u.role}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-slate-600">{u.department}</td>
+                                <td className="px-3 py-2 text-right font-bold text-slate-800">{att}</td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
