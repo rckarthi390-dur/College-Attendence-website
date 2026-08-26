@@ -733,11 +733,14 @@
       const [fromDate, setFromDate] = useState('');
       const [toDate, setToDate] = useState('');
       const [reason, setReason] = useState('');
+      const [submittedNotice, setSubmittedNotice] = useState('');
 
       const handleApply = (e) => {
         e.preventDefault();
         addLeave(user.id, { type: leaveType, fromDate, toDate, reason });
         setFromDate(''); setToDate(''); setReason('');
+        setSubmittedNotice('Application submitted successfully! It is now pending faculty review.');
+        setTimeout(() => setSubmittedNotice(''), 4000);
       };
 
       return (
@@ -751,6 +754,12 @@
             </div>
             <PercentageGauge value={overallPercentage} />
           </div>
+
+          {submittedNotice && (
+            <div className="p-4 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-2xl text-sm font-semibold flex items-center gap-2 animate-bounce">
+              <span>✅</span> {submittedNotice}
+            </div>
+          )}
 
           {/* Subject Breakdown Cards */}
           <div className="grid md:grid-cols-3 gap-4">
@@ -825,6 +834,57 @@
                 <button type="submit" className="btn-primary text-xs px-6 py-2.5">🚀 Submit Application</button>
               </div>
             </form>
+          </div>
+
+          {/* My Leave / OD Application History & Status */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-slate-800 text-base">My Leave & On-Duty (OD) Requests</h3>
+                <p className="text-xs text-slate-500">Track approval status in real-time</p>
+              </div>
+              <span className="text-xs font-bold px-3 py-1 bg-purple-50 text-purple-700 rounded-full border border-purple-200">
+                {studentLeaves.length} Total Requests
+              </span>
+            </div>
+
+            {studentLeaves.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 text-sm">
+                No leave or on-duty applications submitted yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {studentLeaves.map(l => (
+                  <div key={l.id} className="leave-card p-4 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-all">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[11px] font-extrabold uppercase px-2 py-0.5 rounded ${l.type === 'od' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                          {l.type === 'od' ? '🚀 On-Duty (OD)' : '📝 Absence Leave'}
+                        </span>
+                        <span className="text-xs font-bold text-slate-700">
+                          📅 {l.fromDate} {l.fromDate !== l.toDate && `→ ${l.toDate}`}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-800">"{l.reason}"</p>
+                      <p className="text-[11px] text-slate-400">Applied on: {new Date(l.appliedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1.5">
+                      <StatusBadge status={l.status} />
+                      {l.status === 'approved' && (
+                        <span className="text-[10px] text-emerald-600 font-bold">Approved by Faculty</span>
+                      )}
+                      {l.status === 'rejected' && (
+                        <span className="text-[10px] text-red-500 font-bold">Rejected by Faculty</span>
+                      )}
+                      {l.status === 'pending' && (
+                        <span className="text-[10px] text-amber-600 font-medium">Awaiting Faculty Approval</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       );
