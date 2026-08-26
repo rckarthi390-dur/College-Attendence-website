@@ -31,30 +31,198 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
-    .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.6); }
-    .sidebar-gradient { background: linear-gradient(160deg, #1a237e 0%, #283593 50%, #1565c0 100%); }
-    .sidebar-gradient-faculty { background: linear-gradient(160deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%); }
-    .sidebar-gradient-student { background: linear-gradient(160deg, #4a148c 0%, #6a1b9a 50%, #7b1fa2 100%); }
-    .btn-primary { background: linear-gradient(to right, #2563eb, #4f46e5); color: white; border-radius: 0.75rem; padding: 0.5rem 1rem; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
-    .btn-primary:hover { background: linear-gradient(to right, #1d4ed8, #4338ca); transform: translateY(-1px); }
-    .btn-secondary { background: white; color: #334155; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.5rem 1rem; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; }
-    .btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
-    .btn-success { background: linear-gradient(to right, #10b981, #0d9488); color: white; border-radius: 0.75rem; padding: 0.5rem 1rem; font-weight: 600; font-size: 0.875rem; }
-    .btn-danger { background: linear-gradient(to right, #ef4444, #f43f5e); color: white; border-radius: 0.75rem; padding: 0.5rem 1rem; font-weight: 600; font-size: 0.875rem; }
-    .input-field { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem; padding: 0.625rem 0.875rem; font-size: 0.875rem; outline: none; background: white; transition: all 0.2s; }
-    .input-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
-    .stat-card { background: white; border-radius: 1rem; padding: 1.25rem; border: 1px solid #f1f5f9; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .table-header { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-    .table-row { border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
-    .table-row:hover { background: #f8fafc; }
+    /* ── Ambient Mesh Gradient & Typography ── */
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+                  radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.10) 0px, transparent 50%),
+                  radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+                  radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+                  #f1f5f9;
+      color: #0f172a;
+      min-height: 100vh;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Custom Glass Scrollbars ── */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(241, 245, 249, 0.6); }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 9999px;
+      backdrop-filter: blur(4px);
+      transition: background 0.2s ease;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.6); }
+
+    /* ── Glassmorphism Core Cards & Surfaces ── */
+    .glass-card, .bg-white {
+      background: rgba(255, 255, 255, 0.78) !important;
+      backdrop-filter: blur(16px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.8) !important;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+      border-radius: 1.25rem !important;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    .glass-card:hover {
+      box-shadow: 0 14px 38px rgba(30, 41, 59, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+      border-color: rgba(255, 255, 255, 0.95) !important;
+    }
+
+    /* ── Dark Glass Sidebar ── */
+    .app-sidebar {
+      background: rgba(15, 23, 42, 0.92) !important;
+      backdrop-filter: blur(24px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15) !important;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    /* ── Butter-Smooth Buttons ── */
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%) !important;
+      color: white !important;
+      border-radius: 0.875rem !important;
+      padding: 0.625rem 1.25rem !important;
+      font-weight: 700 !important;
+      font-size: 0.875rem !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35) !important;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #4338ca 100%) !important;
+      transform: translateY(-2px) scale(1.01) !important;
+      box-shadow: 0 8px 22px rgba(59, 130, 246, 0.45) !important;
+    }
+    .btn-primary:active {
+      transform: translateY(0) scale(0.99) !important;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(8px) !important;
+      color: #334155 !important;
+      border: 1px solid rgba(203, 213, 225, 0.7) !important;
+      border-radius: 0.875rem !important;
+      padding: 0.625rem 1.25rem !important;
+      font-weight: 700 !important;
+      font-size: 0.875rem !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03) !important;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background: #ffffff !important;
+      border-color: #94a3b8 !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #0d9488 100%) !important;
+      color: white !important;
+      border-radius: 0.875rem !important;
+      padding: 0.625rem 1.25rem !important;
+      font-weight: 700 !important;
+      font-size: 0.875rem !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      cursor: pointer;
+    }
+    .btn-success:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4) !important;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #e11d48 100%) !important;
+      color: white !important;
+      border-radius: 0.875rem !important;
+      padding: 0.625rem 1.25rem !important;
+      font-weight: 700 !important;
+      font-size: 0.875rem !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3) !important;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      cursor: pointer;
+    }
+    .btn-danger:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4) !important;
+    }
+
+    /* ── Frosted Input Fields ── */
+    .input-field {
+      width: 100%;
+      border: 1px solid rgba(203, 213, 225, 0.8) !important;
+      border-radius: 0.875rem !important;
+      padding: 0.65rem 0.95rem !important;
+      font-size: 0.875rem !important;
+      outline: none !important;
+      background: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(10px) !important;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .input-field:focus {
+      border-color: #4f46e5 !important;
+      background: #ffffff !important;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18) !important;
+      transform: translateY(-1px);
+    }
+
+    /* ── Tab Buttons with Smooth Glow ── */
+    .tab-nav button {
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      backdrop-filter: blur(8px) !important;
+    }
+    .tab-nav button:hover {
+      transform: translateY(-1.5px) !important;
+    }
+
+    /* ── Table & Rows ── */
+    .table-header {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .table-row {
+      border-bottom: 1px solid rgba(241, 245, 249, 0.8);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .table-row:hover {
+      background: rgba(241, 245, 249, 0.7) !important;
+      transform: scale([1.002]);
+    }
+
+    /* ── Tab Pane Animations ── */
+    .tab-content, .fade-in-slide {
+      animation: fadeInSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes fadeInSlide {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
     /* ── Mobile Responsive Styles ── */
     .mobile-menu-btn { display: none; }
     .sidebar-overlay { display: none; }
 
     @media (max-width: 768px) {
-      /* Sidebar: hidden by default on mobile, shown as overlay */
       .app-sidebar {
         position: fixed !important;
         left: -280px;
@@ -62,76 +230,69 @@
         bottom: 0;
         z-index: 50;
         width: 260px !important;
-        transition: left 0.3s ease;
+        transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
       .app-sidebar.open { left: 0; }
       .sidebar-overlay {
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.5);
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
         z-index: 40;
+        transition: all 0.3s ease;
       }
       .sidebar-overlay.open { display: block; }
 
-      /* Hamburger button */
       .mobile-menu-btn {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        background: white;
-        border: 1px solid #e2e8f0;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
         font-size: 1.25rem;
         cursor: pointer;
         position: fixed;
         top: 12px;
         left: 12px;
         z-index: 35;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .mobile-menu-btn:hover {
+        transform: scale(1.05);
       }
 
-      /* Main content takes full width */
       .app-main { padding-top: 60px !important; }
       .app-main > div { padding: 1rem !important; }
 
-      /* Tab buttons wrap */
       .tab-nav { flex-wrap: wrap !important; gap: 0.375rem !important; }
       .tab-nav button { font-size: 0.65rem !important; padding: 0.375rem 0.625rem !important; white-space: nowrap; }
 
-      /* Dashboard header stacks */
       .dash-header { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
 
-      /* Grids go single column */
       .grid-cols-4, .grid-cols-5, .grid-cols-3 { grid-template-columns: 1fr !important; }
       .stat-mini-grid.grid-cols-4 { grid-template-columns: repeat(4, 1fr) !important; }
       .grid.md\\:grid-cols-2 { grid-template-columns: 1fr !important; }
       .grid.md\\:grid-cols-3 { grid-template-columns: 1fr !important; }
 
-      /* Tables scroll horizontally */
       .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -0.5rem; padding: 0 0.5rem; }
       .table-wrap table { min-width: 600px; }
 
-      /* Student banner stacks */
       .student-banner { flex-direction: column !important; text-align: center; gap: 1rem !important; padding: 1.25rem !important; }
 
-      /* Form grids go single column */
       form.grid { grid-template-columns: 1fr !important; }
       form .col-span-4 { grid-column: span 1 !important; }
 
-      /* Leave cards stack */
       .leave-card { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
       .leave-card > div:last-child { width: 100%; display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 0.5rem; }
 
-      /* Admin add-user form */
       form.grid-cols-5 { grid-template-columns: 1fr !important; }
-
-      /* Settings grid */
       .grid-cols-2 { grid-template-columns: 1fr !important; }
-
-      /* History grid */
       .grid-cols-3 { grid-template-columns: 1fr !important; }
     }
 
@@ -424,20 +585,23 @@
       const [password, setPassword] = useState('');
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
-          <div className="relative w-full max-w-4xl">
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4 relative overflow-hidden">
+          {/* Ambient Glowing Orbs */}
+          <div className="absolute top-10 right-10 w-96 h-96 bg-indigo-600/25 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+          <div className="absolute bottom-10 left-10 w-96 h-96 bg-blue-600/25 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
+
+          <div className="relative w-full max-w-4xl fade-in-slide z-10">
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-3xl shadow-xl mb-3">🎓</div>
-              <h1 className="text-3xl font-extrabold text-white">College Attendance System</h1>
-              <p className="text-slate-400 text-sm mt-1">Role-Based Attendance Portal · 2024-25</p>
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-3xl shadow-xl shadow-indigo-500/20 mb-3 transition-transform duration-300 hover:scale-110">🎓</div>
+              <h1 className="text-3xl font-black text-white tracking-tight">College Attendance System</h1>
+              <p className="text-slate-400 text-sm mt-1 font-medium">Role-Based Attendance Portal · 2024-25</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* Quick Demo Login */}
-              <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-white">
-                <h2 className="font-bold text-lg mb-1">Instant Demo Roles</h2>
+              <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 text-white shadow-2xl">
+                <h2 className="font-bold text-lg mb-1 tracking-tight">Instant Demo Roles</h2>
                 <p className="text-slate-400 text-xs mb-4">Select any role to jump directly into the dashboard</p>
                 <div className="space-y-3">
                   {[
@@ -445,10 +609,10 @@
                     { role: 'student', label: 'Student Portal', desc: 'Subject %, date logs, OD requests', icon: '🎓', color: 'from-purple-600 to-indigo-600' },
                     { role: 'admin', label: 'Administrator', desc: 'User management, audit logs, PDF export', icon: '🛡️', color: 'from-blue-600 to-indigo-600' },
                   ].map(r => (
-                    <button key={r.role} onClick={() => demoLogin(r.role)} className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 transition-all text-left group">
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${r.color} flex items-center justify-center text-xl flex-shrink-0 shadow`}>{r.icon}</div>
+                    <button key={r.role} onClick={() => demoLogin(r.role)} className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 hover:border-white/25 transition-all duration-300 text-left group hover:-translate-y-1 hover:shadow-lg">
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${r.color} flex items-center justify-center text-xl flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform duration-300`}>{r.icon}</div>
                       <div>
-                        <p className="font-bold text-sm">{r.label}</p>
+                        <p className="font-bold text-sm text-white group-hover:text-blue-300 transition-colors">{r.label}</p>
                         <p className="text-slate-400 text-xs">{r.desc}</p>
                       </div>
                     </button>
@@ -457,7 +621,7 @@
               </div>
 
               {/* Real Login Form */}
-              <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-white">
+              <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 text-white shadow-2xl">
                 <h2 className="font-bold text-lg mb-1">Institutional Sign In</h2>
                 <p className="text-slate-400 text-xs mb-4">Enter your college email & credentials</p>
                 <form onSubmit={e => { e.preventDefault(); login(email, password); }} className="space-y-4">
@@ -537,8 +701,8 @@
 
           {/* Mark Attendance Tab */}
           {tab === 'mark' && (
-            <div className="space-y-6">
-              <div className="bg-white p-5 rounded-2xl border border-slate-100 grid grid-cols-4 gap-4">
+            <div className="tab-content space-y-6">
+              <div className="glass-card bg-white p-5 rounded-2xl border border-slate-100 grid grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Department</label>
                   <select value={dept} onChange={e => setDept(e.target.value)} className="input-field">
@@ -609,7 +773,7 @@
 
           {/* Past Edits / Historical Modifications */}
           {tab === 'history' && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-100">
+            <div className="tab-content bg-white glass-card rounded-2xl p-6 border border-slate-100">
               <h3 className="font-bold text-slate-800 mb-1 text-base">Unlimited Historical Attendance Modification</h3>
               <p className="text-xs text-slate-500 mb-4">Edit any past session status without locking or admin approval. Every change is automatically logged in the audit trail.</p>
               
@@ -663,7 +827,7 @@
 
           {/* Audit Log Tab */}
           {tab === 'audit' && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-100">
+            <div className="tab-content bg-white glass-card rounded-2xl p-6 border border-slate-100">
               <h3 className="font-bold text-slate-800 mb-4 text-base">My Audit Log Trail</h3>
               <div className="table-wrap"><table className="w-full">
                 <thead className="bg-slate-50">
@@ -694,7 +858,7 @@
 
           {/* Leaves Tab */}
           {tab === 'leaves' && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-100">
+            <div className="tab-content bg-white glass-card rounded-2xl p-6 border border-slate-100">
               <h3 className="font-bold text-slate-800 mb-4 text-base">Student Leave & OD Applications</h3>
               <div className="space-y-3">
                 {leaves.map(l => (
@@ -744,9 +908,9 @@
       };
 
       return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="fade-in-slide p-6 max-w-7xl mx-auto space-y-6">
           {/* Header Banner */}
-          <div className="student-banner bg-gradient-to-r from-purple-700 to-indigo-800 rounded-3xl p-6 text-white flex items-center justify-between shadow-xl">
+          <div className="student-banner bg-gradient-to-r from-purple-700 to-indigo-800 rounded-3xl p-6 text-white flex items-center justify-between shadow-xl transition-all duration-300 hover:shadow-2xl">
             <div>
               <p className="text-purple-200 text-xs font-semibold uppercase tracking-wider">Student Dashboard</p>
               <h1 className="text-2xl font-bold mt-1">{user.name} ({user.rollNumber})</h1>
@@ -764,7 +928,7 @@
           {/* Subject Breakdown Cards */}
           <div className="grid md:grid-cols-3 gap-4">
             {stats.map(s => (
-              <div key={s.courseId} className={`bg-white rounded-2xl p-5 border shadow-sm ${s.isLow ? 'border-red-200 bg-red-50/20' : 'border-slate-100'}`}>
+              <div key={s.courseId} className={`glass-card bg-white rounded-2xl p-5 border shadow-sm ${s.isLow ? 'border-red-200 bg-red-50/20' : 'border-slate-100'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-bold text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{s.courseCode}</span>
                   <span className={`text-sm font-black ${s.isLow ? 'text-red-600' : 'text-emerald-600'}`}>{s.percentage}%</span>
@@ -1023,7 +1187,7 @@
           </div>
 
           {tab === 'users' && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 space-y-6">
+            <div className="tab-content bg-white glass-card rounded-2xl p-6 border border-slate-100 space-y-6">
               <h3 className="font-bold text-slate-800 text-sm">Add System User</h3>
               <form onSubmit={e => { e.preventDefault(); addUser(newU); }} className="grid grid-cols-5 gap-3">
                 <input type="text" placeholder="Name" value={newU.name} onChange={e => setNewU({...newU, name: e.target.value})} required className="input-field" />
@@ -1066,7 +1230,7 @@
           )}
 
           {tab === 'audit' && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 space-y-4">
+            <div className="tab-content bg-white glass-card rounded-2xl p-6 border border-slate-100 space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-slate-800 text-sm">System-Wide Master Audit Trail</h3>
                 <button onClick={exportAuditCSV} className="btn-secondary text-xs">📥 Export CSV</button>
@@ -1097,7 +1261,7 @@
           )}
 
           {tab === 'settings' && (
-            <div className="space-y-6">
+            <div className="tab-content space-y-6">
               {/* Institution Settings Card */}
               <div className="bg-white rounded-2xl p-6 border border-slate-100 space-y-4">
                 <h3 className="font-bold text-slate-800 text-base">Institutional Policies & Thresholds</h3>
