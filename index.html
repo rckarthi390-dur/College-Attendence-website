@@ -987,7 +987,7 @@
       if (!user) return <LoginPage />;
 
       return (
-        <div className="min-h-screen bg-slate-50 flex">
+        <div className="h-screen w-full bg-slate-50 flex overflow-hidden">
           {/* Mobile Hamburger Button */}
           <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
 
@@ -995,7 +995,7 @@
           <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
 
           {/* Sidebar */}
-          <div className={`app-sidebar w-64 bg-slate-900 text-white p-5 flex flex-col justify-between ${sidebarOpen ? 'open' : ''}`}>
+          <div className={`app-sidebar w-64 h-screen flex-shrink-0 bg-slate-900 text-white p-5 flex flex-col justify-between overflow-y-auto ${sidebarOpen ? 'open' : ''}`}>
             <div>
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-xl font-bold">🎓</div>
@@ -1015,7 +1015,7 @@
           </div>
 
           {/* Main View */}
-          <div className="app-main flex-1 overflow-auto">
+          <div className="app-main flex-1 h-full overflow-y-auto">
             {user.role === 'faculty' && <FacultyView />}
             {user.role === 'student' && <StudentView />}
             {user.role === 'admin' && <AdminView />}
