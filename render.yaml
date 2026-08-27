@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: college-attendance-system
+    env: static
+    buildCommand: ""
+    staticPublishPath: ./
