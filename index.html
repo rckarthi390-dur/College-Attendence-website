@@ -1066,7 +1066,40 @@
       const auditLogs = getAuditLog();
       const settings = getSettings();
 
-      const [newU, setNewU] = useState({ name: '', email: '', role: 'student', department: 'Computer Science', password: 'password' });
+      const [newU, setNewU] = useState({
+        name: '',
+        email: '',
+        role: 'student',
+        rollNumber: '',
+        employeeId: '',
+        section: 'A',
+        year: 1,
+        department: 'Computer Science',
+        password: 'password'
+      });
+      const [userAddedNotice, setUserAddedNotice] = useState('');
+
+      const handleAddUser = (e) => {
+        e.preventDefault();
+        const userData = { ...newU };
+        if (userData.role === 'student') {
+          userData.year = Number(userData.year) || 1;
+        }
+        addUser(userData);
+        setUserAddedNotice(`User "${userData.name}" (${userData.role.toUpperCase()}) added successfully!`);
+        setTimeout(() => setUserAddedNotice(''), 4000);
+        setNewU({
+          name: '',
+          email: '',
+          role: newU.role,
+          rollNumber: '',
+          employeeId: '',
+          section: 'A',
+          year: 1,
+          department: newU.department,
+          password: 'password'
+        });
+      };
       const [newC, setNewC] = useState({ name: '', code: '', department: 'Computer Science', credits: 4 });
 
       // PDF & Report Filter State
@@ -1188,44 +1221,211 @@
 
           {tab === 'users' && (
             <div className="tab-content bg-white glass-card rounded-2xl p-6 border border-slate-100 space-y-6">
-              <h3 className="font-bold text-slate-800 text-sm">Add System User</h3>
-              <form onSubmit={e => { e.preventDefault(); addUser(newU); }} className="grid grid-cols-5 gap-3">
-                <input type="text" placeholder="Name" value={newU.name} onChange={e => setNewU({...newU, name: e.target.value})} required className="input-field" />
-                <input type="email" placeholder="Email" value={newU.email} onChange={e => setNewU({...newU, email: e.target.value})} required className="input-field" />
-                <select value={newU.role} onChange={e => setNewU({...newU, role: e.target.value})} className="input-field">
-                  <option value="student">Student</option>
-                  <option value="faculty">Faculty</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <select value={newU.department} onChange={e => setNewU({...newU, department: e.target.value})} className="input-field">
-                  <option value="Computer Science">Computer Science</option>
-                  <option value="Electronics">Electronics</option>
-                </select>
-                <button type="submit" className="btn-primary text-xs">Add User</button>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Add New System User</h3>
+                  <p className="text-xs text-slate-500">Register new students, faculty members, or administrators</p>
+                </div>
+                <span className="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">
+                  {users.length} Registered Users
+                </span>
+              </div>
+
+              {userAddedNotice && (
+                <div className="p-3 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-semibold animate-bounce flex items-center gap-2">
+                  <span>✅</span> {userAddedNotice}
+                </div>
+              )}
+
+              {/* Add User Form */}
+              <form onSubmit={handleAddUser} className="bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 space-y-4">
+                {/* Role Switcher */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-600">Select Role:</span>
+                  <div className="inline-flex gap-1 bg-white p-1 rounded-xl border border-slate-200">
+                    {[
+                      { id: 'student', label: '🎓 Student' },
+                      { id: 'faculty', label: '👨‍🏫 Faculty / Staff' },
+                      { id: 'admin', label: '🛡️ Administrator' }
+                    ].map(r => (
+                      <button
+                        type="button"
+                        key={r.id}
+                        onClick={() => setNewU({ ...newU, role: r.id })}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${newU.role === r.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Form Fields Grid */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Rahul Sharma"
+                      value={newU.name}
+                      onChange={e => setNewU({...newU, name: e.target.value})}
+                      required
+                      className="input-field bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Institutional Email *</label>
+                    <input
+                      type="email"
+                      placeholder={newU.role === 'student' ? 'rahul@student.edu' : 'rahul@college.edu'}
+                      value={newU.email}
+                      onChange={e => setNewU({...newU, email: e.target.value})}
+                      required
+                      className="input-field bg-white"
+                    />
+                  </div>
+
+                  {/* Student Specific: Register / Roll Number */}
+                  {newU.role === 'student' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-indigo-700 mb-1">Register / Roll Number *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. CS21005"
+                        value={newU.rollNumber}
+                        onChange={e => setNewU({...newU, rollNumber: e.target.value.toUpperCase()})}
+                        required
+                        className="input-field bg-white border-indigo-300 focus:border-indigo-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Faculty Specific: Employee ID */}
+                  {newU.role === 'faculty' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-emerald-700 mb-1">Employee ID *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. FAC005"
+                        value={newU.employeeId}
+                        onChange={e => setNewU({...newU, employeeId: e.target.value.toUpperCase()})}
+                        required
+                        className="input-field bg-white border-emerald-300 focus:border-emerald-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Student Specific: Class / Section */}
+                  {newU.role === 'student' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-indigo-700 mb-1">Class / Section *</label>
+                      <select
+                        value={newU.section}
+                        onChange={e => setNewU({...newU, section: e.target.value})}
+                        className="input-field bg-white border-indigo-300 focus:border-indigo-500"
+                      >
+                        <option value="A">Section A</option>
+                        <option value="B">Section B</option>
+                        <option value="C">Section C</option>
+                        <option value="D">Section D</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Student Specific: Year of Study */}
+                  {newU.role === 'student' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-indigo-700 mb-1">Year of Study *</label>
+                      <select
+                        value={newU.year}
+                        onChange={e => setNewU({...newU, year: Number(e.target.value)})}
+                        className="input-field bg-white border-indigo-300 focus:border-indigo-500"
+                      >
+                        <option value={1}>1st Year (Freshman)</option>
+                        <option value={2}>2nd Year (Sophomore)</option>
+                        <option value={3}>3rd Year (Junior)</option>
+                        <option value={4}>4th Year (Senior)</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Department */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Department *</label>
+                    <select
+                      value={newU.department}
+                      onChange={e => setNewU({...newU, department: e.target.value})}
+                      className="input-field bg-white"
+                    >
+                      {deptList.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button type="submit" className="btn-primary text-xs px-6 py-2.5 flex items-center gap-1.5">
+                    <span>➕</span> Register {newU.role === 'student' ? 'Student' : newU.role === 'faculty' ? 'Faculty' : 'Admin'}
+                  </button>
+                </div>
               </form>
 
-              <div className="table-wrap"><table className="w-full">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left table-header">Name</th>
-                    <th className="px-4 py-2 text-left table-header">Email</th>
-                    <th className="px-4 py-2 text-left table-header">Role</th>
-                    <th className="px-4 py-2 text-left table-header">Dept</th>
-                    <th className="px-4 py-2 text-right table-header">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {users.map(u => (
-                    <tr key={u.id} className="table-row">
-                      <td className="px-4 py-3 text-sm font-bold text-slate-800">{u.name}</td>
-                      <td className="px-4 py-3 text-xs text-slate-500">{u.email}</td>
-                      <td className="px-4 py-3 text-xs font-bold uppercase text-indigo-600">{u.role}</td>
-                      <td className="px-4 py-3 text-xs text-slate-600">{u.department}</td>
-                      <td className="px-4 py-3 text-right"><button onClick={() => deleteUser(u.id)} className="text-xs text-red-600 font-bold hover:underline">Remove</button></td>
+              {/* Users Roster Table */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Existing User Accounts ({users.length})</h4>
+                <div className="table-wrap"><table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left table-header">ID / Roll No</th>
+                      <th className="px-4 py-2.5 text-left table-header">Full Name</th>
+                      <th className="px-4 py-2.5 text-left table-header">Role</th>
+                      <th className="px-4 py-2.5 text-left table-header">Class & Year</th>
+                      <th className="px-4 py-2.5 text-left table-header">Department</th>
+                      <th className="px-4 py-2.5 text-left table-header">Email</th>
+                      <th className="px-4 py-2.5 text-right table-header">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table></div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {users.map(u => (
+                      <tr key={u.id} className="table-row">
+                        <td className="px-4 py-3 text-xs font-mono font-bold text-slate-700">
+                          {u.rollNumber || u.employeeId ? (
+                            <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                              {u.rollNumber || u.employeeId}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-bold text-slate-800">{u.name}</td>
+                        <td className="px-4 py-3 text-xs">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${u.role === 'student' ? 'bg-purple-100 text-purple-700' : u.role === 'faculty' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-700">
+                          {u.role === 'student' ? (
+                            <span className="font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                              Sec {u.section || 'A'} · Year {u.year || 1}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-600">{u.department}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500 font-mono">{u.email}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button onClick={() => deleteUser(u.id)} className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors">
+                            🗑️ Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table></div>
+              </div>
             </div>
           )}
 
