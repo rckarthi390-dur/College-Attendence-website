@@ -25,8 +25,12 @@ app.use('/api/leaves', leavesRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/settings', settingsRoutes);
 
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'College Attendance API Server Running', timestamp: new Date().toISOString() });
+});
+
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'College Attendance API running' });
+  res.json({ status: 'ok', message: 'College Attendance API running', timestamp: new Date().toISOString() });
 });
 
 app.listen(PORT, () => {
