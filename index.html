@@ -559,14 +559,19 @@
         }
       }, [updateDB]);
 
-      // Auto-sync periodically & on tab focus
+      // Auto-sync periodically, on tab focus & on visibility change (instant multi-device sync)
       useEffect(() => {
         syncWithCloud();
-        const interval = setInterval(syncWithCloud, 6000);
+        const interval = setInterval(syncWithCloud, 4000);
+        const onVisibility = () => {
+          if (!document.hidden) syncWithCloud();
+        };
         window.addEventListener('focus', syncWithCloud);
+        document.addEventListener('visibilitychange', onVisibility);
         return () => {
           clearInterval(interval);
           window.removeEventListener('focus', syncWithCloud);
+          document.removeEventListener('visibilitychange', onVisibility);
         };
       }, [syncWithCloud]);
 
@@ -837,11 +842,11 @@
       const [password, setPassword] = useState('');
       const [error, setError] = useState('');
 
-      const handleLoginSubmit = (e) => {
+      const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setError('');
         try {
-          login(email, password);
+          await login(email, password);
         } catch (err) {
           setError(err.message || 'Invalid credentials');
         }
