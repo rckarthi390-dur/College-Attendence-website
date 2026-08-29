@@ -31,6 +31,17 @@ router.post('/', authenticate, requireRole('admin'), (req, res) => {
   res.status(201).json(newDept);
 });
 
+// PUT /api/departments/:id (Update HOD or details)
+router.put('/:id', authenticate, requireRole('admin'), (req, res) => {
+  const { id } = req.params;
+  const dept = db.get('departments').find(d => d.id === id || d.name === id).value();
+  if (!dept) return res.status(404).json({ error: 'Department not found.' });
+  const updates = { ...req.body };
+  delete updates.id;
+  db.get('departments').find(d => d.id === id || d.name === id).assign(updates).write();
+  res.json(db.get('departments').find(d => d.id === id || d.name === id).value());
+});
+
 // DELETE /api/departments/:id
 router.delete('/:id', authenticate, requireRole('admin'), (req, res) => {
   const { id } = req.params;
