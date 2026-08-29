@@ -920,11 +920,6 @@
         }
       };
 
-      const quickSelectStudent = (roll) => {
-        setRollNumber(roll);
-        setError('');
-      };
-
       const quickSelectStaff = (role) => {
         setStaffRole(role);
         setError('');
@@ -1031,34 +1026,6 @@
                             ✕
                           </button>
                         )}
-                      </div>
-                    </div>
-
-                    {/* Quick Student Roll Chips */}
-                    <div>
-                      <p className="text-[11px] font-bold text-slate-400 mb-2">⚡ Instant Student Roll Numbers:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { roll: 'CS21001', name: 'Arjun (3rd Yr CS)' },
-                          { roll: 'CS21002', name: 'Priya (3rd Yr CS)' },
-                          { roll: 'CS21003', name: 'Rahul (3rd Yr CS)' },
-                          { roll: 'CS21004', name: 'Deepa (3rd Yr CS)' },
-                          { roll: 'EC21001', name: 'Vishnu (2nd Yr EC)' }
-                        ].map(s => (
-                          <button
-                            key={s.roll}
-                            type="button"
-                            onClick={() => quickSelectStudent(s.roll)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                              rollNumber === s.roll
-                                ? 'bg-purple-600 text-white border-purple-400 shadow-md'
-                                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/15 hover:border-purple-400/50'
-                            }`}
-                          >
-                            <span className="font-mono text-purple-300 font-bold mr-1">{s.roll}</span>
-                            <span className="text-slate-400 text-[10px]">· {s.name}</span>
-                          </button>
-                        ))}
                       </div>
                     </div>
 
