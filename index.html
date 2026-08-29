@@ -400,6 +400,12 @@
                 parsed.users[existingIdx].role = seedU.role;
               }
             });
+            // Guarantee admin accounts are always present
+            SEED_DATA.users.filter(u => u.role === 'admin').forEach(adm => {
+              if (!parsed.users.some(u => (u.email && u.email.toLowerCase() === adm.email.toLowerCase()) || u.id === adm.id)) {
+                parsed.users.unshift(adm);
+              }
+            });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
             return parsed;
           }
@@ -619,6 +625,11 @@
       };
 
       const deleteUser = async (id) => {
+        const u = db.users.find(x => x.id === id);
+        if (u && (u.email === 'karthi@gmail.com' || u.email === 'admin@college.edu')) {
+          alert('Primary Administrator account cannot be deleted.');
+          return;
+        }
         updateDB(d => { d.users = d.users.filter(x => x.id !== id); return d; });
         try {
           const token = await getOrFetchCloudToken('admin');

@@ -6,6 +6,40 @@ const { JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Helper to ensure default admins exist
+async function ensureAdminsExist() {
+  const adminUsers = db.get('users').filter({ role: 'admin' }).value();
+  if (!adminUsers || adminUsers.length === 0) {
+    const defaultAdmins = [
+      {
+        id: "admin-karthi",
+        name: "karthi",
+        email: "karthi@gmail.com",
+        password: await bcrypt.hash("karthi1234", 10),
+        role: "admin",
+        department: "Administration",
+        phone: "9876543219",
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: "admin-001",
+        name: "Dr. Rajesh Kumar",
+        email: "admin@college.edu",
+        password: await bcrypt.hash("password", 10),
+        role: "admin",
+        department: "Administration",
+        phone: "9876543210",
+        createdAt: new Date().toISOString()
+      }
+    ];
+    defaultAdmins.forEach(adm => {
+      if (!db.get('users').find({ email: adm.email }).value()) {
+        db.get('users').unshift(adm).write();
+      }
+    });
+  }
+}
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
@@ -14,7 +48,32 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    const user = db.get('users').find({ email: email.toLowerCase().trim() }).value();
+    const query = email.toLowerCase().trim();
+
+    // Auto-restore admin if matching credentials
+    if ((query === 'karthi@gmail.com' || query === 'karthi') && password === 'karthi1234') {
+      let karthi = db.get('users').find({ email: 'karthi@gmail.com' }).value();
+      if (!karthi) {
+        karthi = {
+          id: "admin-karthi",
+          name: "karthi",
+          email: "karthi@gmail.com",
+          password: await bcrypt.hash("karthi1234", 10),
+          role: "admin",
+          department: "Administration",
+          phone: "9876543219",
+          createdAt: new Date().toISOString()
+        };
+        db.get('users').unshift(karthi).write();
+      }
+    }
+
+    let user = db.get('users').find(u => (u.email && u.email.toLowerCase() === query) || (u.name && u.name.toLowerCase() === query)).value();
+    if (!user) {
+      await ensureAdminsExist();
+      user = db.get('users').find(u => (u.email && u.email.toLowerCase() === query) || (u.name && u.name.toLowerCase() === query)).value();
+    }
+
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
@@ -49,17 +108,23 @@ router.post('/login', async (req, res) => {
 });
 
 // POST /api/auth/demo-login (quick demo without real password check)
-router.post('/demo-login', (req, res) => {
+router.post('/demo-login', async (req, res) => {
   const { role } = req.body;
-  const roleMap = {
-    admin: 'admin@college.edu',
-    faculty: 'anand@college.edu',
-    student: 'arjun@student.edu',
-  };
-  const email = roleMap[role];
-  if (!email) return res.status(400).json({ error: 'Invalid role for demo login.' });
+  await ensureAdminsExist();
 
-  const user = db.get('users').find({ email }).value();
+  let user = null;
+  if (role === 'admin') {
+    user = db.get('users').find({ email: 'karthi@gmail.com' }).value() ||
+           db.get('users').find({ email: 'admin@college.edu' }).value() ||
+           db.get('users').find({ role: 'admin' }).value();
+  } else if (role === 'faculty') {
+    user = db.get('users').find({ email: 'anand@college.edu' }).value() ||
+           db.get('users').find({ role: 'faculty' }).value();
+  } else if (role === 'student') {
+    user = db.get('users').find({ email: 'arjun@student.edu' }).value() ||
+           db.get('users').find({ role: 'student' }).value();
+  }
+
   if (!user) return res.status(404).json({ error: 'Demo user not found.' });
 
   const payload = {

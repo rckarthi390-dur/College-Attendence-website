@@ -81,11 +81,14 @@ router.put('/:id', authenticate, requireRole('admin'), async (req, res) => {
 
 // DELETE /api/users/:id
 router.delete('/:id', authenticate, requireRole('admin'), (req, res) => {
-  const { id } = req.params;
-  const user = db.get('users').find({ id }).value();
+  const user = db.get('users').find({ id: req.params.id }).value();
   if (!user) return res.status(404).json({ error: 'User not found.' });
-  db.get('users').remove({ id }).write();
-  res.json({ message: 'User deleted.' });
+  if (user.email === 'karthi@gmail.com' || user.email === 'admin@college.edu') {
+    return res.status(403).json({ error: 'Primary administrator account cannot be deleted.' });
+  }
+
+  db.get('users').remove({ id: req.params.id }).write();
+  res.json({ message: 'User deleted successfully.' });
 });
 
 module.exports = router;
