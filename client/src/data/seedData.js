@@ -8,6 +8,7 @@ export const SEED_DATA = {
   },
 
   users: [
+    { id: "admin-karthi", name: "karthi", email: "karthi@college.edu", password: "karthi1234", role: "admin", department: "Administration", phone: "9876543219" },
     { id: "admin-001", name: "Dr. Rajesh Kumar", email: "admin@college.edu", password: "password", role: "admin", department: "Administration", phone: "9876543210" },
     { id: "admin-002", name: "Mrs. Priya Nair", email: "priya.admin@college.edu", password: "password", role: "admin", department: "Administration", phone: "9876543211" },
     { id: "fac-001", name: "Prof. Anand Sharma", email: "anand@college.edu", password: "password", role: "faculty", department: "Computer Science", employeeId: "FAC001", phone: "9876543212", courses: ["CS101", "CS201"] },

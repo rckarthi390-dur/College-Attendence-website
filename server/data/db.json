@@ -1,6 +1,16 @@
 {
   "users": [
     {
+      "id": "admin-karthi",
+      "name": "karthi",
+      "email": "karthi@college.edu",
+      "password": "$2a$10$8K1p/a0dL1LXMIgoEDFrwODg7C.j8oQW2Jv2QdJgq2ZJ6Ceqc8pqa",
+      "role": "admin",
+      "department": "Administration",
+      "phone": "9876543219",
+      "createdAt": "2026-08-29T00:00:00Z"
+    },
+    {
       "id": "admin-001",
       "name": "Dr. Rajesh Kumar",
       "email": "admin@college.edu",

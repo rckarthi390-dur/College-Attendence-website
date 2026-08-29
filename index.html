@@ -318,6 +318,7 @@
         lateMarkWindow: 30,
       },
       users: [
+        { id: "admin-karthi", name: "karthi", email: "karthi@college.edu", password: "karthi1234", role: "admin", department: "Administration", phone: "9876543219" },
         { id: "admin-001", name: "Dr. Rajesh Kumar", email: "admin@college.edu", password: "password", role: "admin", department: "Administration", phone: "9876543210" },
         { id: "fac-001", name: "Prof. Anand Sharma", email: "anand@college.edu", password: "password", role: "faculty", department: "Computer Science", employeeId: "FAC001", phone: "9876543212" },
         { id: "fac-002", name: "Dr. Meena Iyer", email: "meena@college.edu", password: "password", role: "faculty", department: "Electronics", employeeId: "FAC002", phone: "9876543213" },
@@ -383,8 +384,10 @@
 
       const login = (email, password) => {
         const db = loadDB();
-        const found = db.users.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
-        if (!found) throw new Error('User not found with this email.');
+        const query = (email || '').toLowerCase().trim();
+        const found = db.users.find(u => (u.email && u.email.toLowerCase() === query) || (u.name && u.name.toLowerCase() === query));
+        if (!found) throw new Error('User not found with this email or username.');
+        if (found.password && found.password !== password) throw new Error('Invalid password.');
         const { password: _p, ...safe } = found;
         setUser(safe);
         localStorage.setItem('college_auth_user', JSON.stringify(safe));
