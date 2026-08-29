@@ -767,15 +767,40 @@
       };
 
       const getStudentAttendanceSummary = (studentId) => {
+        const student = db.users.find(u => u.id === studentId);
         const recs = db.attendance.filter(a => a.studentId === studentId);
-        const threshold = db.settings.attendanceThreshold;
-        const stats = db.courses.map(course => {
+        const threshold = db.settings.attendanceThreshold || 75;
+        
+        // Show courses for the student's department or all courses
+        let studentCourses = db.courses;
+        if (student && student.department) {
+          const deptCourses = db.courses.filter(c => c.department.toLowerCase() === student.department.toLowerCase());
+          if (deptCourses.length > 0) {
+            studentCourses = deptCourses;
+          }
+        }
+
+        const stats = studentCourses.map(course => {
           const cRecs = recs.filter(r => r.courseId === course.id);
           const total = cRecs.length;
           const present = cRecs.filter(r => r.status === 'present' || r.status === 'on-duty').length;
           const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
-          return { courseId: course.id, courseName: course.name, courseCode: course.code, total, present, absent: cRecs.filter(r => r.status === 'absent').length, late: cRecs.filter(r => r.status === 'late').length, onDuty: cRecs.filter(r => r.status === 'on-duty').length, percentage, isLow: percentage < threshold && total > 0 };
-        }).filter(s => s.total > 0);
+          return {
+            courseId: course.id,
+            courseName: course.name,
+            courseCode: course.code,
+            department: course.department,
+            credits: course.credits,
+            total,
+            present,
+            absent: cRecs.filter(r => r.status === 'absent').length,
+            late: cRecs.filter(r => r.status === 'late').length,
+            onDuty: cRecs.filter(r => r.status === 'on-duty').length,
+            percentage,
+            isLow: total > 0 && percentage < threshold,
+            hasSessions: total > 0
+          };
+        });
 
         const totalAll = recs.length;
         const presentAll = recs.filter(r => r.status === 'present' || r.status === 'on-duty').length;
@@ -784,10 +809,10 @@
         const enrichedRecords = recs.map(r => {
           const course = db.courses.find(c => c.id === r.courseId);
           const audits = db.auditLog.filter(a => a.attendanceId === r.id);
-          return { ...r, courseName: course?.name || '', courseCode: course?.code || '', wasModified: audits.length > 0 };
+          return { ...r, courseName: course?.name || 'Course', courseCode: course?.code || '', wasModified: audits.length > 0 };
         });
 
-        return { records: enrichedRecords, stats, overallPercentage };
+        return { records: enrichedRecords, stats, overallPercentage, totalSessions: totalAll };
       };
 
       const getAuditLog = (f = {}) => {
@@ -1472,49 +1497,90 @@
           )}
 
           {/* Subject Breakdown Cards */}
-          <div className="grid md:grid-cols-3 gap-4">
-            {stats.map(s => (
-              <div key={s.courseId} className={`glass-card bg-white rounded-2xl p-5 border shadow-sm ${s.isLow ? 'border-red-200 bg-red-50/20' : 'border-slate-100'}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{s.courseCode}</span>
-                  <span className={`text-sm font-black ${s.isLow ? 'text-red-600' : 'text-emerald-600'}`}>{s.percentage}%</span>
-                </div>
-                <h4 className="font-bold text-slate-800 text-sm mb-3">{s.courseName}</h4>
-                <div className="grid grid-cols-4 stat-mini-grid gap-1 text-center text-xs">
-                  <div className="bg-emerald-50 text-emerald-800 py-1 rounded font-bold">{s.present} P</div>
-                  <div className="bg-red-50 text-red-800 py-1 rounded font-bold">{s.absent} A</div>
-                  <div className="bg-amber-50 text-amber-800 py-1 rounded font-bold">{s.late} L</div>
-                  <div className="bg-blue-50 text-blue-800 py-1 rounded font-bold">{s.onDuty} OD</div>
-                </div>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                <span>📚</span> Enrolled Subjects & Attendance Summary
+              </h3>
+              <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+                {stats.length} Subjects Assigned
+              </span>
+            </div>
+
+            {stats.length === 0 ? (
+              <div className="bg-white rounded-2xl p-8 border border-dashed border-slate-300 text-center space-y-2">
+                <span className="text-3xl">📖</span>
+                <p className="font-bold text-slate-700 text-sm">No courses currently assigned to your department ({user.department})</p>
+                <p className="text-xs text-slate-400">Ask your Administrator or HOD to add courses in the Course Management section.</p>
               </div>
-            ))}
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {stats.map(s => (
+                  <div key={s.courseId} className={`glass-card bg-white rounded-2xl p-5 border shadow-sm transition-all duration-200 hover:shadow-md ${s.isLow ? 'border-red-200 bg-red-50/20' : 'border-slate-100'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">{s.courseCode}</span>
+                      <span className={`text-sm font-black px-2 py-0.5 rounded-md ${
+                        s.total === 0 ? 'bg-slate-100 text-slate-500' : s.isLow ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+                      }`}>
+                        {s.total === 0 ? 'No sessions' : `${s.percentage}%`}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-slate-800 text-sm mb-1 line-clamp-1">{s.courseName}</h4>
+                    <p className="text-[11px] text-slate-400 font-medium mb-3">{s.department} · {s.credits} Credits</p>
+                    
+                    {s.total === 0 ? (
+                      <div className="bg-slate-50 p-2.5 rounded-xl text-center text-xs text-slate-500 font-medium border border-slate-100">
+                        ⚡ Classes starting soon · 0 sessions taken
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 stat-mini-grid gap-1 text-center text-xs">
+                        <div className="bg-emerald-50 text-emerald-800 py-1 rounded font-bold">{s.present} P</div>
+                        <div className="bg-red-50 text-red-800 py-1 rounded font-bold">{s.absent} A</div>
+                        <div className="bg-amber-50 text-amber-800 py-1 rounded font-bold">{s.late} L</div>
+                        <div className="bg-blue-50 text-blue-800 py-1 rounded font-bold">{s.onDuty} OD</div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Date-wise Log with Staff Update Indicators */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100">
-            <h3 className="font-bold text-slate-800 text-sm mb-4">Date-wise Attendance Log & Modification Badges</h3>
-            <div className="table-wrap"><table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-2 text-left table-header">Date</th>
-                  <th className="px-4 py-2 text-left table-header">Subject</th>
-                  <th className="px-4 py-2 text-center table-header">Status</th>
-                  <th className="px-4 py-2 text-right table-header">Staff Revision Indicator</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {records.map(r => (
-                  <tr key={r.id} className="table-row">
-                    <td className="px-4 py-3 text-sm text-slate-600">{r.date}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-slate-800">{r.courseName}</td>
-                    <td className="px-4 py-3 text-center"><StatusBadge status={r.status} /></td>
-                    <td className="px-4 py-3 text-right">
-                      {r.wasModified ? <span className="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold">✏️ Updated by Faculty</span> : <span className="text-xs text-slate-400">Original</span>}
-                    </td>
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 space-y-4">
+            <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <span>📋</span> Date-wise Attendance Log & Modification Badges
+            </h3>
+            {records.length === 0 ? (
+              <div className="p-8 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center space-y-1.5">
+                <span className="text-2xl">📝</span>
+                <p className="font-bold text-slate-700 text-sm">No Attendance Sessions Marked Yet</p>
+                <p className="text-xs text-slate-400">Your daily lecture attendance records will be displayed here once marked by faculty.</p>
+              </div>
+            ) : (
+              <div className="table-wrap"><table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left table-header">Date</th>
+                    <th className="px-4 py-2 text-left table-header">Subject</th>
+                    <th className="px-4 py-2 text-center table-header">Status</th>
+                    <th className="px-4 py-2 text-right table-header">Staff Revision Indicator</th>
                   </tr>
-                ))}
-              </tbody>
-            </table></div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {records.map(r => (
+                    <tr key={r.id} className="table-row">
+                      <td className="px-4 py-3 text-sm text-slate-600 font-mono">{r.date}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-slate-800">{r.courseName}</td>
+                      <td className="px-4 py-3 text-center"><StatusBadge status={r.status} /></td>
+                      <td className="px-4 py-3 text-right">
+                        {r.wasModified ? <span className="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold">✏️ Updated by Faculty</span> : <span className="text-xs text-slate-400">Original</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+            )}
           </div>
 
           {/* Apply Leave / OD */}
