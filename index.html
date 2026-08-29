@@ -358,6 +358,30 @@
       ]
     };
 
+    const API_BASE = 'https://college-attendence-website.onrender.com/api';
+
+    // Helper to get or fetch token for background cloud sync
+    async function getOrFetchCloudToken(role = 'admin') {
+      let token = localStorage.getItem('college_auth_token');
+      if (!token) {
+        try {
+          const res = await fetch(`${API_BASE}/auth/demo-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            token = data.token;
+            localStorage.setItem('college_auth_token', token);
+          }
+        } catch (e) {
+          console.warn('Could not obtain cloud sync token:', e);
+        }
+      }
+      return token;
+    }
+
     const STORAGE_KEY = 'college_attendance_db';
     function loadDB() {
       try {
@@ -401,10 +425,30 @@
         } catch { return null; }
       });
 
-      const login = (email, password) => {
-        const db = loadDB();
+      const login = async (email, password) => {
         const query = (email || '').toLowerCase().trim();
         const inputPwd = (password || '').trim();
+
+        // 1. Try Live Cloud Login
+        try {
+          const res = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: query, password: inputPwd })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUser(data.user);
+            localStorage.setItem('college_auth_user', JSON.stringify(data.user));
+            localStorage.setItem('college_auth_token', data.token);
+            return data.user;
+          }
+        } catch (err) {
+          console.warn('Live cloud login fallback to local DB:', err);
+        }
+
+        // 2. Fallback to Local DB
+        const db = loadDB();
         const found = db.users.find(u => (u.email && u.email.toLowerCase() === query) || (u.name && u.name.toLowerCase() === query));
         if (!found) throw new Error('User not found with this email or username.');
         if (found.password && found.password.trim() !== inputPwd) throw new Error('Invalid password.');
@@ -414,7 +458,26 @@
         return safe;
       };
 
-      const demoLogin = (role) => {
+      const demoLogin = async (role) => {
+        // 1. Try Live Cloud Demo Login
+        try {
+          const res = await fetch(`${API_BASE}/auth/demo-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUser(data.user);
+            localStorage.setItem('college_auth_user', JSON.stringify(data.user));
+            localStorage.setItem('college_auth_token', data.token);
+            return data.user;
+          }
+        } catch (err) {
+          console.warn('Live cloud demo login fallback to local DB:', err);
+        }
+
+        // 2. Fallback to Local DB
         const roleMap = { admin: 'karthi@gmail.com', faculty: 'anand@college.edu', student: 'arjun@student.edu' };
         const db = loadDB();
         const found = db.users.find(u => u.email === roleMap[role]) || db.users.find(u => u.role === role);
@@ -428,6 +491,7 @@
       const logout = () => {
         setUser(null);
         localStorage.removeItem('college_auth_user');
+        localStorage.removeItem('college_auth_token');
       };
 
       return <AuthContext.Provider value={{ user, login, demoLogin, logout }}>{children}</AuthContext.Provider>;
@@ -435,14 +499,76 @@
 
     function AppProvider({ children }) {
       const [db, setDb] = useState(() => loadDB());
+      const [isSyncing, setIsSyncing] = useState(false);
+      const [lastSync, setLastSync] = useState(null);
 
-      const updateDB = (updater) => {
+      const updateDB = useCallback((updater) => {
         setDb(prev => {
           const next = updater(JSON.parse(JSON.stringify(prev)));
           saveDB(next);
           return next;
         });
-      };
+      }, []);
+
+      // Pull latest cloud data across all devices
+      const syncWithCloud = useCallback(async () => {
+        try {
+          setIsSyncing(true);
+          const token = await getOrFetchCloudToken('admin');
+          if (!token) return;
+          const headers = { 'Authorization': `Bearer ${token}` };
+
+          const [usersRes, coursesRes, leavesRes, settingsRes, attRes] = await Promise.allSettled([
+            fetch(`${API_BASE}/users`, { headers }),
+            fetch(`${API_BASE}/courses`, { headers }),
+            fetch(`${API_BASE}/leaves`, { headers }),
+            fetch(`${API_BASE}/settings`, { headers }),
+            fetch(`${API_BASE}/attendance`, { headers })
+          ]);
+
+          const updates = {};
+          if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
+            const users = await usersRes.value.json();
+            if (Array.isArray(users) && users.length > 0) updates.users = users;
+          }
+          if (coursesRes.status === 'fulfilled' && coursesRes.value.ok) {
+            const courses = await coursesRes.value.json();
+            if (Array.isArray(courses) && courses.length > 0) updates.courses = courses;
+          }
+          if (leavesRes.status === 'fulfilled' && leavesRes.value.ok) {
+            const leaves = await leavesRes.value.json();
+            if (Array.isArray(leaves)) updates.leaves = leaves;
+          }
+          if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
+            const settings = await settingsRes.value.json();
+            if (settings && settings.institutionName) updates.settings = settings;
+          }
+          if (attRes.status === 'fulfilled' && attRes.value.ok) {
+            const attendance = await attRes.value.json();
+            if (Array.isArray(attendance)) updates.attendance = attendance;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            updateDB(d => ({ ...d, ...updates }));
+          }
+          setLastSync(new Date());
+        } catch (err) {
+          console.warn('Cloud sync error:', err);
+        } finally {
+          setIsSyncing(false);
+        }
+      }, [updateDB]);
+
+      // Auto-sync periodically & on tab focus
+      useEffect(() => {
+        syncWithCloud();
+        const interval = setInterval(syncWithCloud, 6000);
+        window.addEventListener('focus', syncWithCloud);
+        return () => {
+          clearInterval(interval);
+          window.removeEventListener('focus', syncWithCloud);
+        };
+      }, [syncWithCloud]);
 
       // Users
       const getUsers = (f = {}) => {
@@ -451,18 +577,73 @@
         if (f.department) u = u.filter(x => x.department === f.department);
         return u;
       };
-      const addUser = (data) => {
-        const newU = { id: `usr-${Date.now()}`, ...data };
+
+      const addUser = async (data) => {
+        const newU = { id: `usr-${Date.now()}`, ...data, createdAt: new Date().toISOString() };
         updateDB(d => { d.users.push(newU); return d; });
+
+        // Save to Render Cloud Database
+        try {
+          const token = await getOrFetchCloudToken('admin');
+          if (token) {
+            await fetch(`${API_BASE}/users`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            setTimeout(syncWithCloud, 800);
+          }
+        } catch (e) {
+          console.warn('Failed to save user to cloud:', e);
+        }
       };
-      const updateUser = (id, data) => {
+
+      const updateUser = async (id, data) => {
         updateDB(d => { const i = d.users.findIndex(x => x.id === id); if (i >= 0) d.users[i] = { ...d.users[i], ...data }; return d; });
+        try {
+          const token = await getOrFetchCloudToken('admin');
+          if (token) {
+            await fetch(`${API_BASE}/users/${id}`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            setTimeout(syncWithCloud, 800);
+          }
+        } catch (e) {}
       };
-      const deleteUser = (id) => updateDB(d => { d.users = d.users.filter(x => x.id !== id); return d; });
+
+      const deleteUser = async (id) => {
+        updateDB(d => { d.users = d.users.filter(x => x.id !== id); return d; });
+        try {
+          const token = await getOrFetchCloudToken('admin');
+          if (token) {
+            await fetch(`${API_BASE}/users/${id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            setTimeout(syncWithCloud, 800);
+          }
+        } catch (e) {}
+      };
 
       // Courses & Departments
       const getCourses = (dept) => dept ? db.courses.filter(c => c.department === dept) : db.courses;
-      const addCourse = (data) => updateDB(d => { d.courses.push({ id: data.code || `CRS-${Date.now()}`, ...data }); return d; });
+      const addCourse = async (data) => {
+        const newC = { id: data.code || `CRS-${Date.now()}`, ...data };
+        updateDB(d => { d.courses.push(newC); return d; });
+        try {
+          const token = await getOrFetchCloudToken('admin');
+          if (token) {
+            await fetch(`${API_BASE}/courses`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            setTimeout(syncWithCloud, 800);
+          }
+        } catch (e) {}
+      };
       const updateCourse = (id, data) => updateDB(d => { const i = d.courses.findIndex(c => c.id === id); if (i >= 0) d.courses[i] = { ...d.courses[i], ...data }; return d; });
       const deleteCourse = (id) => updateDB(d => { d.courses = d.courses.filter(c => c.id !== id); return d; });
 
@@ -500,6 +681,18 @@
           });
           return d;
         });
+
+        // Cloud sync attendance
+        getOrFetchCloudToken('faculty').then(token => {
+          if (token) {
+            fetch(`${API_BASE}/attendance`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ courseId, date, records, markedBy })
+            }).then(() => setTimeout(syncWithCloud, 800)).catch(() => {});
+          }
+        });
+
         return { auditEntries };
       };
 
@@ -549,12 +742,47 @@
         }).sort((a,b) => new Date(b.appliedAt) - new Date(a.appliedAt));
       };
 
-      const addLeave = (studentId, data) => updateDB(d => { d.leaves.push({ id: `leave-${Date.now()}`, studentId, ...data, status: 'pending', appliedAt: new Date().toISOString() }); return d; });
-      const reviewLeave = (id, status, reviewerId) => updateDB(d => { const i = d.leaves.findIndex(x => x.id === id); if (i >= 0) d.leaves[i] = { ...d.leaves[i], status, reviewedBy: reviewerId, reviewedAt: new Date().toISOString() }; return d; });
+      const addLeave = (studentId, data) => {
+        updateDB(d => { d.leaves.push({ id: `leave-${Date.now()}`, studentId, ...data, status: 'pending', appliedAt: new Date().toISOString() }); return d; });
+        getOrFetchCloudToken('student').then(token => {
+          if (token) {
+            fetch(`${API_BASE}/leaves`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ studentId, ...data })
+            }).then(() => setTimeout(syncWithCloud, 800)).catch(() => {});
+          }
+        });
+      };
+
+      const reviewLeave = (id, status, reviewerId) => {
+        updateDB(d => { const i = d.leaves.findIndex(x => x.id === id); if (i >= 0) d.leaves[i] = { ...d.leaves[i], status, reviewedBy: reviewerId, reviewedAt: new Date().toISOString() }; return d; });
+        getOrFetchCloudToken('faculty').then(token => {
+          if (token) {
+            fetch(`${API_BASE}/leaves/${id}`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status, reviewerId })
+            }).then(() => setTimeout(syncWithCloud, 800)).catch(() => {});
+          }
+        });
+      };
+
       const deleteLeave = (id) => updateDB(d => { d.leaves = d.leaves.filter(x => x.id !== id); return d; });
 
       const getSettings = () => db.settings;
-      const updateSettings = (data) => updateDB(d => { d.settings = { ...d.settings, ...data }; return d; });
+      const updateSettings = (data) => {
+        updateDB(d => { d.settings = { ...d.settings, ...data }; return d; });
+        getOrFetchCloudToken('admin').then(token => {
+          if (token) {
+            fetch(`${API_BASE}/settings`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            }).then(() => setTimeout(syncWithCloud, 800)).catch(() => {});
+          }
+        });
+      };
 
       return (
         <AppContext.Provider value={{
@@ -563,7 +791,7 @@
           getDepartments, addDepartment, deleteDepartment,
           getRoster, saveAttendanceSession, getStudentAttendanceSummary,
           getAuditLog, getLeaves, addLeave, reviewLeave, deleteLeave,
-          getSettings, updateSettings
+          getSettings, updateSettings, syncWithCloud, isSyncing, lastSync
         }}>
           {children}
         </AppContext.Provider>
@@ -1624,6 +1852,7 @@
     // Main App Shell
     function App() {
       const { user, logout } = useAuth();
+      const { isSyncing, syncWithCloud } = useApp();
       const [sidebarOpen, setSidebarOpen] = useState(false);
       if (!user) return <LoginPage />;
 
@@ -1646,9 +1875,24 @@
                 </div>
               </div>
 
-              <div className="p-3 bg-white/5 rounded-xl border border-white/10 mb-6">
+              <div className="p-3 bg-white/5 rounded-xl border border-white/10 mb-4">
                 <p className="text-xs font-bold text-white truncate">{user.name}</p>
                 <p className="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">{user.role}</p>
+              </div>
+
+              {/* Cloud Sync Status Indicator */}
+              <div className="p-3 bg-emerald-950/40 rounded-xl border border-emerald-500/30 mb-6 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`}></span>
+                  <span className="text-[11px] font-bold text-emerald-300">{isSyncing ? 'Syncing...' : 'Cloud Live (Multi-Device)'}</span>
+                </div>
+                <button
+                  onClick={() => syncWithCloud()}
+                  title="Sync data across all devices"
+                  className="text-[10px] px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 font-bold rounded-lg border border-emerald-400/30 transition-all cursor-pointer"
+                >
+                  🔄 Sync
+                </button>
               </div>
             </div>
 
