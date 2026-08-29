@@ -8,35 +8,23 @@ const router = express.Router();
 
 // Helper to ensure default admins exist
 async function ensureAdminsExist() {
-  const adminUsers = db.get('users').filter({ role: 'admin' }).value();
-  if (!adminUsers || adminUsers.length === 0) {
-    const defaultAdmins = [
-      {
-        id: "admin-karthi",
-        name: "karthi",
-        email: "karthi@gmail.com",
-        password: await bcrypt.hash("karthi1234", 10),
-        role: "admin",
-        department: "Administration",
-        phone: "9876543219",
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: "admin-001",
-        name: "Dr. Rajesh Kumar",
-        email: "admin@college.edu",
-        password: await bcrypt.hash("password", 10),
-        role: "admin",
-        department: "Administration",
-        phone: "9876543210",
-        createdAt: new Date().toISOString()
-      }
-    ];
-    defaultAdmins.forEach(adm => {
-      if (!db.get('users').find({ email: adm.email }).value()) {
-        db.get('users').unshift(adm).write();
-      }
-    });
+  // Prune Dr. Rajesh Kumar if present in server DB
+  db.get('users').remove({ id: 'admin-001' }).write();
+  db.get('users').remove({ email: 'admin@college.edu' }).write();
+
+  const karthiAdmin = db.get('users').find({ email: 'karthi@gmail.com' }).value();
+  if (!karthiAdmin) {
+    const karthi = {
+      id: "admin-karthi",
+      name: "karthi",
+      email: "karthi@gmail.com",
+      password: await bcrypt.hash("karthi1234", 10),
+      role: "admin",
+      department: "Administration",
+      phone: "9876543219",
+      createdAt: new Date().toISOString()
+    };
+    db.get('users').unshift(karthi).write();
   }
 }
 

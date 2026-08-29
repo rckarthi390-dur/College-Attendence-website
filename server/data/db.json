@@ -11,16 +11,6 @@
       "createdAt": "2026-08-29T00:00:00Z"
     },
     {
-      "id": "admin-001",
-      "name": "Dr. Rajesh Kumar",
-      "email": "admin@college.edu",
-      "password": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
-      "role": "admin",
-      "department": "Administration",
-      "phone": "9876543210",
-      "createdAt": "2024-06-01T00:00:00Z"
-    },
-    {
       "id": "admin-002",
       "name": "Mrs. Priya Nair",
       "email": "priya.admin@college.edu",

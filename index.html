@@ -319,7 +319,6 @@
       },
       users: [
         { id: "admin-karthi", name: "karthi", email: "karthi@gmail.com", password: "karthi1234", role: "admin", department: "Administration", phone: "9876543219" },
-        { id: "admin-001", name: "Dr. Rajesh Kumar", email: "admin@college.edu", password: "password", role: "admin", department: "Administration", phone: "9876543210" },
         { id: "fac-001", name: "Prof. Anand Sharma", email: "anand@college.edu", password: "password", role: "faculty", department: "Computer Science", employeeId: "FAC001", phone: "9876543212" },
         { id: "fac-002", name: "Dr. Meena Iyer", email: "meena@college.edu", password: "password", role: "faculty", department: "Electronics", employeeId: "FAC002", phone: "9876543213" },
         { id: "stu-001", name: "Arjun Menon", email: "arjun@student.edu", password: "password", role: "student", rollNumber: "CS21001", dob: "2004-05-15", department: "Computer Science", section: "A", year: 3, phone: "9876543220" },
@@ -400,12 +399,8 @@
                 parsed.users[existingIdx].role = seedU.role;
               }
             });
-            // Guarantee admin accounts are always present
-            SEED_DATA.users.filter(u => u.role === 'admin').forEach(adm => {
-              if (!parsed.users.some(u => (u.email && u.email.toLowerCase() === adm.email.toLowerCase()) || u.id === adm.id)) {
-                parsed.users.unshift(adm);
-              }
-            });
+            // Remove Dr. Rajesh Kumar (admin-001 / admin@college.edu)
+            parsed.users = parsed.users.filter(u => u.id !== 'admin-001' && (u.email ? u.email.toLowerCase() !== 'admin@college.edu' : true));
             if (Array.isArray(parsed.departments)) {
               parsed.departments = parsed.departments.filter(d => d.name !== 'Administration');
             }

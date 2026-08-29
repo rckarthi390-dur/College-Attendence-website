@@ -83,7 +83,7 @@ router.put('/:id', authenticate, requireRole('admin'), async (req, res) => {
 router.delete('/:id', authenticate, requireRole('admin'), (req, res) => {
   const user = db.get('users').find({ id: req.params.id }).value();
   if (!user) return res.status(404).json({ error: 'User not found.' });
-  if (user.email === 'karthi@gmail.com' || user.email === 'admin@college.edu') {
+  if (user.email === 'karthi@gmail.com') {
     return res.status(403).json({ error: 'Primary administrator account cannot be deleted.' });
   }
 
