@@ -723,12 +723,25 @@
 
       // Roster & Attendance
       const getRoster = (courseId, section, date, dept) => {
-        let students = db.users.filter(u => u.role === 'student' && u.section === section);
-        if (dept) students = students.filter(s => s.department === dept);
+        let students = db.users.filter(u => u.role === 'student');
+        if (section) {
+          students = students.filter(s => !s.section || s.section.toUpperCase() === section.toUpperCase());
+        }
+        if (dept) {
+          students = students.filter(s => !s.department || s.department.toLowerCase() === dept.toLowerCase());
+        }
         const existing = db.attendance.filter(a => a.courseId === courseId && a.date === date);
         return students.map(s => {
           const att = existing.find(a => a.studentId === s.id);
-          return { studentId: s.id, name: s.name, rollNumber: s.rollNumber, section: s.section, status: att ? att.status : 'present', originalStatus: att ? att.status : 'present', attendanceId: att ? att.id : null };
+          return {
+            studentId: s.id,
+            name: s.name,
+            rollNumber: s.rollNumber,
+            section: s.section || 'A',
+            status: att ? att.status : 'present',
+            originalStatus: att ? att.status : 'present',
+            attendanceId: att ? att.id : null
+          };
         });
       };
 
