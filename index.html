@@ -2925,25 +2925,9 @@
                 </div>
               </div>
 
-              <div className="p-3 bg-white/5 rounded-xl border border-white/10 mb-4">
+              <div className="p-3 bg-white/5 rounded-xl border border-white/10 mb-6">
                 <p className="text-xs font-bold text-white truncate">{user.name}</p>
                 <p className="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">{user.role}</p>
-              </div>
-
-              {/* Cloud Sync Status Indicator */}
-              <div className="p-2.5 bg-indigo-950/60 rounded-xl border border-indigo-800/40 mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[11px] text-indigo-200">
-                  <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`}></span>
-                  <span>{isSyncing ? 'Syncing...' : 'Multi-Device Live'}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={syncWithCloud}
-                  title="Force Sync with Cloud Database"
-                  className="text-[10px] bg-indigo-600/80 hover:bg-indigo-600 px-2 py-0.5 rounded text-white font-bold transition-all cursor-pointer"
-                >
-                  🔄 Sync
-                </button>
               </div>
             </div>
 
