@@ -968,16 +968,9 @@
         }
       };
 
-      const quickSelectStaff = (role) => {
+      const selectStaffRole = (role) => {
         setStaffRole(role);
         setError('');
-        if (role === 'admin') {
-          setEmail('karthi@gmail.com');
-          setPassword('karthi1234');
-        } else {
-          setEmail('anand@college.edu');
-          setPassword('password');
-        }
       };
 
       return (
@@ -1053,7 +1046,7 @@
                     <p className="text-slate-400 text-xs leading-relaxed">Enter your Student Roll Number and Date of Birth to view your attendance</p>
                   </div>
 
-                  <form onSubmit={handleStudentSubmit} className="space-y-4 sm:space-y-4.5">
+                  <form onSubmit={handleStudentSubmit} autoComplete="off" className="space-y-4 sm:space-y-4.5">
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
                         Student Roll / Register Number *
@@ -1066,6 +1059,7 @@
                           required
                           autoFocus
                           placeholder="e.g. CS21001"
+                          autoComplete="off"
                           className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-mono font-bold text-sm sm:text-base rounded-xl sm:rounded-2xl px-3.5 sm:px-4 py-3 outline-none tracking-wider sm:tracking-widest placeholder:text-slate-500 placeholder:tracking-normal transition-all"
                         />
                         {rollNumber && (
@@ -1095,6 +1089,7 @@
                           onChange={handleDobChange}
                           required
                           placeholder="DD/MM/YYYY (e.g. 15/05/2004)"
+                          autoComplete="off"
                           className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-mono font-bold text-sm sm:text-base rounded-xl sm:rounded-2xl px-3.5 sm:px-4 py-3 outline-none tracking-wider sm:tracking-widest placeholder:text-slate-500 placeholder:tracking-normal transition-all"
                         />
                         {dob && (
@@ -1135,7 +1130,7 @@
                   <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/5 rounded-xl border border-white/10">
                     <button
                       type="button"
-                      onClick={() => quickSelectStaff('faculty')}
+                      onClick={() => selectStaffRole('faculty')}
                       className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                         staffRole === 'faculty'
                           ? 'bg-emerald-600 text-white shadow-md'
@@ -1147,69 +1142,50 @@
 
                     <button
                       type="button"
-                      onClick={() => quickSelectStaff('admin')}
+                      onClick={() => selectStaffRole('admin')}
                       className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                         staffRole === 'admin'
                           ? 'bg-blue-600 text-white shadow-md'
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      <span>🛡️</span> Admin (Karthi)
+                      <span>🛡️</span> Administrator (Admin)
                     </button>
                   </div>
 
-                  <form onSubmit={handleStaffSubmit} className="space-y-3.5 sm:space-y-4">
+                  <form onSubmit={handleStaffSubmit} autoComplete="off" className="space-y-3.5 sm:space-y-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-1">
-                        {staffRole === 'admin' ? 'Admin Email or Username' : 'Faculty / Staff Email'}
+                        {staffRole === 'admin' ? 'Admin Email / Username' : 'Faculty / Staff Email'} *
                       </label>
                       <input
                         type="text"
                         value={email}
                         onChange={e => { setEmail(e.target.value); setError(''); }}
                         required
-                        placeholder={staffRole === 'admin' ? 'karthi@gmail.com' : 'anand@college.edu'}
-                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-3.5 py-2.5 text-sm outline-none placeholder:text-slate-500"
+                        autoComplete="off"
+                        placeholder={staffRole === 'admin' ? 'Enter admin email (e.g. karthi@gmail.com)' : 'Enter faculty email (e.g. anand@college.edu)'}
+                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-3.5 py-2.5 text-sm outline-none placeholder:text-slate-500 transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Password</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Password *</label>
                       <input
                         type="password"
                         value={password}
                         onChange={e => { setPassword(e.target.value); setError(''); }}
                         required
-                        placeholder="••••••••"
-                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-3.5 py-2.5 text-sm outline-none placeholder:text-slate-500"
+                        autoComplete="new-password"
+                        placeholder="Enter your account password"
+                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-3.5 py-2.5 text-sm outline-none placeholder:text-slate-500 transition-all"
                       />
-                    </div>
-
-                    {/* Quick Demo Pre-fill helpers */}
-                    <div className="p-2.5 sm:p-3 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                      <span className="text-slate-400 text-[11px]">⚡ Quick Demo Fill:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => quickSelectStaff('faculty')}
-                          className="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg text-[11px] font-bold border border-emerald-500/30"
-                        >
-                          Faculty (Anand)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => quickSelectStaff('admin')}
-                          className="px-2.5 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-[11px] font-bold border border-blue-500/30"
-                        >
-                          Admin (Karthi)
-                        </button>
-                      </div>
                     </div>
 
                     <button
                       type="submit"
                       disabled={loading || !email.trim() || !password.trim()}
-                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-lg shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
+                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-lg shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
                     >
                       <span>🔐</span>
                       <span>{loading ? 'Authenticating...' : `Sign In as ${staffRole === 'admin' ? 'Administrator' : 'Faculty / Staff'} →`}</span>
