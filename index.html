@@ -362,9 +362,28 @@
     function loadDB() {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Array.isArray(parsed.users)) {
+            SEED_DATA.users.forEach(seedU => {
+              const existingIdx = parsed.users.findIndex(u => (u.email && u.email.toLowerCase() === seedU.email.toLowerCase()) || u.id === seedU.id);
+              if (existingIdx === -1) {
+                parsed.users.unshift(seedU);
+              } else {
+                parsed.users[existingIdx].email = seedU.email;
+                parsed.users[existingIdx].password = seedU.password;
+                parsed.users[existingIdx].name = seedU.name;
+                parsed.users[existingIdx].role = seedU.role;
+              }
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            return parsed;
+          }
+        }
       } catch (e) {}
-      return JSON.parse(JSON.stringify(SEED_DATA));
+      const initial = JSON.parse(JSON.stringify(SEED_DATA));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+      return initial;
     }
     function saveDB(db) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
@@ -385,9 +404,10 @@
       const login = (email, password) => {
         const db = loadDB();
         const query = (email || '').toLowerCase().trim();
+        const inputPwd = (password || '').trim();
         const found = db.users.find(u => (u.email && u.email.toLowerCase() === query) || (u.name && u.name.toLowerCase() === query));
         if (!found) throw new Error('User not found with this email or username.');
-        if (found.password && found.password !== password) throw new Error('Invalid password.');
+        if (found.password && found.password.trim() !== inputPwd) throw new Error('Invalid password.');
         const { password: _p, ...safe } = found;
         setUser(safe);
         localStorage.setItem('college_auth_user', JSON.stringify(safe));
@@ -395,9 +415,10 @@
       };
 
       const demoLogin = (role) => {
-        const roleMap = { admin: 'admin@college.edu', faculty: 'anand@college.edu', student: 'arjun@student.edu' };
+        const roleMap = { admin: 'karthi@gmail.com', faculty: 'anand@college.edu', student: 'arjun@student.edu' };
         const db = loadDB();
-        const found = db.users.find(u => u.email === roleMap[role]);
+        const found = db.users.find(u => u.email === roleMap[role]) || db.users.find(u => u.role === role);
+        if (!found) throw new Error('Demo user not found.');
         const { password: _p, ...safe } = found;
         setUser(safe);
         localStorage.setItem('college_auth_user', JSON.stringify(safe));
@@ -586,6 +607,17 @@
       const { login, demoLogin } = useAuth();
       const [email, setEmail] = useState('');
       const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+
+      const handleLoginSubmit = (e) => {
+        e.preventDefault();
+        setError('');
+        try {
+          login(email, password);
+        } catch (err) {
+          setError(err.message || 'Invalid credentials');
+        }
+      };
 
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4 relative overflow-hidden">
@@ -610,7 +642,7 @@
                   {[
                     { role: 'faculty', label: 'Faculty / Staff', desc: 'Daily attendance, history edits, analytics', icon: '👨‍🏫', color: 'from-emerald-600 to-teal-600' },
                     { role: 'student', label: 'Student Portal', desc: 'Subject %, date logs, OD requests', icon: '🎓', color: 'from-purple-600 to-indigo-600' },
-                    { role: 'admin', label: 'Administrator', desc: 'User management, audit logs, PDF export', icon: '🛡️', color: 'from-blue-600 to-indigo-600' },
+                    { role: 'admin', label: 'Administrator (Karthi)', desc: 'karthi@gmail.com · Full system access', icon: '🛡️', color: 'from-blue-600 to-indigo-600' },
                   ].map(r => (
                     <button key={r.role} onClick={() => demoLogin(r.role)} className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 hover:border-white/25 transition-all duration-300 text-left group hover:-translate-y-1 hover:shadow-lg">
                       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${r.color} flex items-center justify-center text-xl flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform duration-300`}>{r.icon}</div>
@@ -627,16 +659,24 @@
               <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 text-white shadow-2xl">
                 <h2 className="font-bold text-lg mb-1">Institutional Sign In</h2>
                 <p className="text-slate-400 text-xs mb-4">Enter your college email & credentials</p>
-                <form onSubmit={e => { e.preventDefault(); login(email, password); }} className="space-y-4">
+
+                {error && (
+                  <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs flex items-center gap-2 animate-shake">
+                    <span className="text-base">⚠️</span>
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Email</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="anand@college.edu" className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400" />
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Email or Username</label>
+                    <input type="text" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} required placeholder="karthi@gmail.com" className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 placeholder-slate-500" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400" />
+                    <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} required placeholder="••••••••" className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 placeholder-slate-500" />
                   </div>
-                  <button type="submit" className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl text-sm hover:from-blue-700 hover:to-indigo-700 transition-all">Sign In →</button>
+                  <button type="submit" className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl text-sm hover:from-blue-700 hover:to-indigo-700 transition-all cursor-pointer shadow-lg shadow-indigo-600/30">Sign In →</button>
                 </form>
               </div>
             </div>
