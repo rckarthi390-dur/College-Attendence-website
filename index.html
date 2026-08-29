@@ -1639,9 +1639,8 @@
       const studentLeaves = getLeaves({ studentId: user.id });
 
       const departments = getDepartments ? getDepartments() : [];
-      const allUsers = getUsers ? getUsers() : [];
       const deptObj = departments.find(d => d.name && d.name.toLowerCase() === (user.department || '').toLowerCase());
-      const hodUser = deptObj ? allUsers.find(u => u.id === deptObj.hod) : null;
+      const hodName = deptObj ? (deptObj.hod || '') : '';
 
       const [leaveType, setLeaveType] = useState('leave');
       const [fromDate, setFromDate] = useState('');
@@ -1666,9 +1665,9 @@
               <h1 className="text-2xl font-bold mt-1">{user.name} ({user.rollNumber})</h1>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap text-purple-200 text-xs">
                 <span>🏛️ {user.department} · Section {user.section} · Year {user.year}</span>
-                {hodUser ? (
+                {hodName ? (
                   <span className="bg-white/20 text-white font-bold px-2.5 py-0.5 rounded-full text-[11px] shadow-sm flex items-center gap-1">
-                    <span>👑</span> HOD: {hodUser.name}
+                    <span>👑</span> HOD: {hodName}
                   </span>
                 ) : (
                   <span className="text-purple-300/80 text-[11px] italic">HOD: Not Assigned</span>
@@ -1683,56 +1682,6 @@
               <span>✅</span> {submittedNotice}
             </div>
           )}
-
-          {/* Subject Breakdown Cards */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
-                <span>📚</span> Enrolled Subjects & Attendance Summary
-              </h3>
-              <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
-                {stats.length} Subjects Assigned
-              </span>
-            </div>
-
-            {stats.length === 0 ? (
-              <div className="bg-white rounded-2xl p-8 border border-dashed border-slate-300 text-center space-y-2">
-                <span className="text-3xl">📖</span>
-                <p className="font-bold text-slate-700 text-sm">No courses currently assigned to your department ({user.department})</p>
-                <p className="text-xs text-slate-400">Ask your Administrator or HOD to add courses in the Course Management section.</p>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {stats.map(s => (
-                  <div key={s.courseId} className={`glass-card bg-white rounded-2xl p-5 border shadow-sm transition-all duration-200 hover:shadow-md ${s.isLow ? 'border-red-200 bg-red-50/20' : 'border-slate-100'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">{s.courseCode}</span>
-                      <span className={`text-sm font-black px-2 py-0.5 rounded-md ${
-                        s.total === 0 ? 'bg-slate-100 text-slate-500' : s.isLow ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
-                      }`}>
-                        {s.total === 0 ? 'No sessions' : `${s.percentage}%`}
-                      </span>
-                    </div>
-                    <h4 className="font-bold text-slate-800 text-sm mb-1 line-clamp-1">{s.courseName}</h4>
-                    <p className="text-[11px] text-slate-400 font-medium mb-3">{s.department} · {s.credits} Credits</p>
-                    
-                    {s.total === 0 ? (
-                      <div className="bg-slate-50 p-2.5 rounded-xl text-center text-xs text-slate-500 font-medium border border-slate-100">
-                        ⚡ Classes starting soon · 0 sessions taken
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-4 stat-mini-grid gap-1 text-center text-xs">
-                        <div className="bg-emerald-50 text-emerald-800 py-1 rounded font-bold">{s.present} P</div>
-                        <div className="bg-red-50 text-red-800 py-1 rounded font-bold">{s.absent} A</div>
-                        <div className="bg-amber-50 text-amber-800 py-1 rounded font-bold">{s.late} L</div>
-                        <div className="bg-blue-50 text-blue-800 py-1 rounded font-bold">{s.onDuty} OD</div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* Date-wise Log with Staff Update Indicators */}
           <div className="bg-white rounded-2xl p-6 border border-slate-100 space-y-4">
@@ -2391,17 +2340,14 @@
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Head of Department (HOD) / In-Charge</label>
-                    <select
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Head of Department (HOD Name)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Dr. K. Ramanathan, M.Sc., Ph.D."
                       value={newD.hod}
                       onChange={e => setNewD({ ...newD, hod: e.target.value })}
                       className="input-field bg-white text-xs sm:text-sm"
-                    >
-                      <option value="">-- Optional: Select Faculty HOD --</option>
-                      {facultyUsers.map(f => (
-                        <option key={f.id} value={f.id}>{f.name} ({f.department})</option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 </div>
 
@@ -2422,7 +2368,7 @@
                       <th className="px-4 py-2.5 text-left table-header">Department Name</th>
                       <th className="px-4 py-2.5 text-center table-header">Enrolled Students</th>
                       <th className="px-4 py-2.5 text-center table-header">Active Courses</th>
-                      <th className="px-4 py-2.5 text-left table-header">HOD / In-Charge</th>
+                      <th className="px-4 py-2.5 text-left table-header">HOD / Department Head</th>
                       <th className="px-4 py-2.5 text-right table-header">Action</th>
                     </tr>
                   </thead>
@@ -2438,6 +2384,7 @@
                         const deptStudents = users.filter(u => u.role === 'student' && u.department && u.department.toLowerCase() === d.name.toLowerCase());
                         const deptCourses = courses.filter(c => c.department && c.department.toLowerCase() === d.name.toLowerCase());
                         const hodFaculty = users.find(u => u.id === d.hod);
+                        const hodDisplay = d.hod || (hodFaculty ? hodFaculty.name : '');
                         return (
                           <tr key={d.id || d.name} className="table-row">
                             <td className="px-4 py-3 text-xs font-mono font-bold text-purple-700">
@@ -2457,33 +2404,38 @@
                               </span>
                             </td>
                             <td className="px-4 py-3 text-xs text-slate-700">
-                              <div className="space-y-1.5">
-                                {hodFaculty ? (
+                              <div className="space-y-1.5 min-w-[200px]">
+                                {hodDisplay && hodDisplay.trim() ? (
                                   <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-lg font-bold border border-emerald-200 shadow-sm">
                                     <span>👑 HOD:</span>
-                                    <span>{hodFaculty.name}</span>
+                                    <span>{hodDisplay}</span>
                                   </div>
                                 ) : (
-                                  <div className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 px-2.5 py-1 rounded-lg font-bold border border-amber-200">
-                                    <span>⚠️ Not Assigned</span>
+                                  <div className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 px-2.5 py-1 rounded-lg font-semibold border border-amber-200">
+                                    <span>⚠️ No HOD Named</span>
                                   </div>
                                 )}
                                 <div>
-                                  <select
-                                    value={d.hod || ''}
-                                    onChange={e => {
-                                      updateDepartment(d.id || d.name, { hod: e.target.value });
-                                      const selectedFaculty = facultyUsers.find(f => f.id === e.target.value);
-                                      setDeptAddedNotice(`HOD for ${d.name} updated to ${selectedFaculty ? selectedFaculty.name : 'Unassigned'}!`);
-                                      setTimeout(() => setDeptAddedNotice(''), 3500);
+                                  <input
+                                    type="text"
+                                    defaultValue={d.hod || ''}
+                                    placeholder="Type HOD name & press enter..."
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter') {
+                                        updateDepartment(d.id || d.name, { hod: e.target.value.trim() });
+                                        setDeptAddedNotice(`HOD for ${d.name} updated to "${e.target.value.trim()}"!`);
+                                        setTimeout(() => setDeptAddedNotice(''), 3500);
+                                      }
                                     }}
-                                    className="text-[11px] px-2 py-1 bg-white border border-slate-300 rounded-lg text-slate-700 cursor-pointer focus:border-indigo-500 w-full font-medium"
-                                  >
-                                    <option value="">-- Change / Assign HOD --</option>
-                                    {facultyUsers.map(f => (
-                                      <option key={f.id} value={f.id}>{f.name} ({f.department})</option>
-                                    ))}
-                                  </select>
+                                    onBlur={e => {
+                                      if (e.target.value !== (d.hod || '')) {
+                                        updateDepartment(d.id || d.name, { hod: e.target.value.trim() });
+                                        setDeptAddedNotice(`HOD for ${d.name} updated to "${e.target.value.trim()}"!`);
+                                        setTimeout(() => setDeptAddedNotice(''), 3500);
+                                      }
+                                    }}
+                                    className="text-[11px] px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-slate-700 focus:border-indigo-500 w-full font-medium"
+                                  />
                                 </div>
                               </div>
                             </td>
