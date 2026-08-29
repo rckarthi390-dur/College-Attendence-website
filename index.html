@@ -717,9 +717,39 @@
       const updateCourse = (id, data) => updateDB(d => { const i = d.courses.findIndex(c => c.id === id); if (i >= 0) d.courses[i] = { ...d.courses[i], ...data }; return d; });
       const deleteCourse = (id) => updateDB(d => { d.courses = d.courses.filter(c => c.id !== id); return d; });
 
-      const getDepartments = () => db.departments;
-      const addDepartment = (data) => updateDB(d => { d.departments.push({ id: `dept-${Date.now()}`, ...data }); return d; });
-      const deleteDepartment = (id) => updateDB(d => { d.departments = d.departments.filter(x => x.id !== id); return d; });
+      const getDepartments = () => db.departments || [];
+      const addDepartment = (data) => {
+        updateDB(d => {
+          if (!Array.isArray(d.departments)) d.departments = [];
+          d.departments.push({ id: `dept-${Date.now()}`, ...data });
+          return d;
+        });
+        getOrFetchCloudToken('admin').then(token => {
+          if (token) {
+            fetch(`${API_BASE}/departments`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            }).then(() => setTimeout(syncWithCloud, 800)).catch(() => {});
+          }
+        });
+      };
+      const deleteDepartment = (id) => {
+        updateDB(d => {
+          if (Array.isArray(d.departments)) {
+            d.departments = d.departments.filter(x => x.id !== id);
+          }
+          return d;
+        });
+        getOrFetchCloudToken('admin').then(token => {
+          if (token) {
+            fetch(`${API_BASE}/departments/${id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` }
+            }).then(() => setTimeout(syncWithCloud, 800)).catch(() => {});
+          }
+        });
+      };
 
       // Roster & Attendance
       const getRoster = (courseId, section, date, dept) => {
@@ -1729,8 +1759,25 @@
       };
 
       const [courseAddedNotice, setCourseAddedNotice] = useState('');
+      const [deptAddedNotice, setDeptAddedNotice] = useState('');
       const [settingsSavedNotice, setSettingsSavedNotice] = useState('');
       const facultyUsers = useMemo(() => users.filter(u => u.role === 'faculty'), [users]);
+      
+      const [newD, setNewD] = useState({ name: '', code: '', hod: '' });
+      const handleAddDepartment = (e) => {
+        e.preventDefault();
+        if (!newD.name.trim() || !newD.code.trim()) return;
+        const deptData = {
+          name: newD.name.trim(),
+          code: newD.code.trim().toUpperCase(),
+          hod: newD.hod || ''
+        };
+        addDepartment(deptData);
+        setDeptAddedNotice(`Department "${deptData.name}" (${deptData.code}) added successfully!`);
+        setTimeout(() => setDeptAddedNotice(''), 4000);
+        setNewD({ name: '', code: '', hod: '' });
+      };
+
       const [newC, setNewC] = useState({ name: '', code: '', department: 'Computer Science', credits: 4, faculty: '' });
 
       const handleAddCourse = (e) => {
@@ -1854,14 +1901,15 @@
               <h1 className="text-2xl font-bold text-slate-800">Administrator Control Center</h1>
               <p className="text-xs text-slate-500">{settings.institutionName} · Academic Year {settings.academicYear}</p>
             </div>
-            <div className="tab-nav flex gap-2">
+            <div className="tab-nav flex gap-2 flex-wrap">
               {[
                 { id: 'users', label: '👥 User Management' },
+                { id: 'departments', label: '🏛️ Department Management' },
                 { id: 'courses', label: '📚 Course Management' },
                 { id: 'audit', label: '📋 Master Audit Log' },
                 { id: 'settings', label: '⚙️ Settings & PDF' }
               ].map(t => (
-                <button key={t.id} onClick={() => setTab(t.id)} className={`px-3.5 py-2 rounded-xl text-xs font-bold ${tab === t.id ? 'bg-blue-600 text-white shadow-md' : 'bg-white border text-slate-700 hover:bg-slate-50'}`}>{t.label}</button>
+                <button key={t.id} onClick={() => setTab(t.id)} className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${tab === t.id ? 'bg-blue-600 text-white shadow-md' : 'bg-white border text-slate-700 hover:bg-slate-50'}`}>{t.label}</button>
               ))}
             </div>
           </div>
@@ -2127,6 +2175,154 @@
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table></div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'departments' && (
+            <div className="tab-content bg-white glass-card rounded-2xl p-6 border border-slate-100 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Academic Department Management</h3>
+                  <p className="text-xs text-slate-500">Create new academic departments, faculties, or disciplines</p>
+                </div>
+                <span className="text-xs font-bold px-3 py-1 bg-purple-50 text-purple-700 rounded-full border border-purple-200">
+                  {departments.length} Departments Registered
+                </span>
+              </div>
+
+              {deptAddedNotice && (
+                <div className="p-3 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-semibold animate-bounce flex items-center gap-2">
+                  <span>✅</span> {deptAddedNotice}
+                </div>
+              )}
+
+              {/* Add Department Form */}
+              <form onSubmit={handleAddDepartment} className="bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>➕</span> Create New Department
+                  </h4>
+                  <span className="text-[11px] text-slate-400">All fields marked * are required</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Department Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Information Technology, Commerce, Mathematics"
+                      value={newD.name}
+                      onChange={e => setNewD({ ...newD, name: e.target.value })}
+                      required
+                      className="input-field bg-white text-xs sm:text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-purple-700 mb-1">Department Code *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. IT, BCOM, MATH, BBA, ENG"
+                      value={newD.code}
+                      onChange={e => setNewD({ ...newD, code: e.target.value.toUpperCase() })}
+                      required
+                      className="input-field bg-white font-mono font-bold text-xs border-purple-300 focus:border-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Head of Department (HOD) / In-Charge</label>
+                    <select
+                      value={newD.hod}
+                      onChange={e => setNewD({ ...newD, hod: e.target.value })}
+                      className="input-field bg-white text-xs sm:text-sm"
+                    >
+                      <option value="">-- Optional: Select Faculty HOD --</option>
+                      {facultyUsers.map(f => (
+                        <option key={f.id} value={f.id}>{f.name} ({f.department})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button type="submit" className="btn-primary text-xs px-6 py-2.5 flex items-center gap-1.5 cursor-pointer">
+                    <span>➕</span> Create Department
+                  </button>
+                </div>
+              </form>
+
+              {/* Academic Departments Table */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Academic Departments ({departments.length})</h4>
+                <div className="table-wrap"><table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left table-header">Code</th>
+                      <th className="px-4 py-2.5 text-left table-header">Department Name</th>
+                      <th className="px-4 py-2.5 text-center table-header">Enrolled Students</th>
+                      <th className="px-4 py-2.5 text-center table-header">Active Courses</th>
+                      <th className="px-4 py-2.5 text-left table-header">HOD / In-Charge</th>
+                      <th className="px-4 py-2.5 text-right table-header">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {departments.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="px-4 py-8 text-center text-xs text-slate-400">
+                          No academic departments created yet. Create one using the form above!
+                        </td>
+                      </tr>
+                    ) : (
+                      departments.map(d => {
+                        const deptStudents = users.filter(u => u.role === 'student' && u.department && u.department.toLowerCase() === d.name.toLowerCase());
+                        const deptCourses = courses.filter(c => c.department && c.department.toLowerCase() === d.name.toLowerCase());
+                        const hodFaculty = users.find(u => u.id === d.hod);
+                        return (
+                          <tr key={d.id || d.name} className="table-row">
+                            <td className="px-4 py-3 text-xs font-mono font-bold text-purple-700">
+                              <span className="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg border border-purple-200">
+                                {d.code || d.id || 'DEPT'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-bold text-slate-800">{d.name}</td>
+                            <td className="px-4 py-3 text-xs text-center font-bold text-slate-700">
+                              <span className="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full font-bold">
+                                {deptStudents.length} Students
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-center font-bold text-slate-700">
+                              <span className="bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full font-bold">
+                                {deptCourses.length} Courses
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-slate-700">
+                              {hodFaculty ? (
+                                <span className="text-emerald-700 font-bold">👨‍🏫 {hodFaculty.name}</span>
+                              ) : (
+                                <span className="text-slate-400 italic">None Assigned</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Are you sure you want to delete department "${d.name}"?`)) {
+                                    deleteDepartment(d.id || d.name);
+                                  }
+                                }}
+                                className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer"
+                              >
+                                🗑️ Remove
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table></div>
               </div>

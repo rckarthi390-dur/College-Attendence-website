@@ -9,6 +9,7 @@ const coursesRoutes = require('./routes/courses');
 const leavesRoutes = require('./routes/leaves');
 const auditRoutes = require('./routes/audit');
 const settingsRoutes = require('./routes/settings');
+const departmentsRoutes = require('./routes/departments');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/courses', coursesRoutes);
+app.use('/api/departments', departmentsRoutes);
 app.use('/api/leaves', leavesRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/settings', settingsRoutes);
