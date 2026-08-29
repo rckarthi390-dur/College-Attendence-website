@@ -1857,7 +1857,6 @@
     // Main App Shell
     function App() {
       const { user, logout } = useAuth();
-      const { isSyncing, syncWithCloud } = useApp();
       const [sidebarOpen, setSidebarOpen] = useState(false);
       if (!user) return <LoginPage />;
 
@@ -1880,24 +1879,9 @@
                 </div>
               </div>
 
-              <div className="p-3 bg-white/5 rounded-xl border border-white/10 mb-4">
+              <div className="p-3 bg-white/5 rounded-xl border border-white/10 mb-6">
                 <p className="text-xs font-bold text-white truncate">{user.name}</p>
                 <p className="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">{user.role}</p>
-              </div>
-
-              {/* Cloud Sync Status Indicator */}
-              <div className="p-3 bg-emerald-950/40 rounded-xl border border-emerald-500/30 mb-6 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`}></span>
-                  <span className="text-[11px] font-bold text-emerald-300">{isSyncing ? 'Syncing...' : 'Cloud Live (Multi-Device)'}</span>
-                </div>
-                <button
-                  onClick={() => syncWithCloud()}
-                  title="Sync data across all devices"
-                  className="text-[10px] px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 font-bold rounded-lg border border-emerald-400/30 transition-all cursor-pointer"
-                >
-                  🔄 Sync
-                </button>
               </div>
             </div>
 
