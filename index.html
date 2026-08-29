@@ -322,10 +322,10 @@
         { id: "admin-001", name: "Dr. Rajesh Kumar", email: "admin@college.edu", password: "password", role: "admin", department: "Administration", phone: "9876543210" },
         { id: "fac-001", name: "Prof. Anand Sharma", email: "anand@college.edu", password: "password", role: "faculty", department: "Computer Science", employeeId: "FAC001", phone: "9876543212" },
         { id: "fac-002", name: "Dr. Meena Iyer", email: "meena@college.edu", password: "password", role: "faculty", department: "Electronics", employeeId: "FAC002", phone: "9876543213" },
-        { id: "stu-001", name: "Arjun Menon", email: "arjun@student.edu", password: "password", role: "student", rollNumber: "CS21001", department: "Computer Science", section: "A", year: 3, phone: "9876543220" },
-        { id: "stu-002", name: "Priya Krishnan", email: "priya.s@student.edu", password: "password", role: "student", rollNumber: "CS21002", department: "Computer Science", section: "A", year: 3, phone: "9876543221" },
-        { id: "stu-003", name: "Rahul Singh", email: "rahul@student.edu", password: "password", role: "student", rollNumber: "CS21003", department: "Computer Science", section: "A", year: 3, phone: "9876543222" },
-        { id: "stu-004", name: "Deepa Nair", email: "deepa@student.edu", password: "password", role: "student", rollNumber: "CS21004", department: "Computer Science", section: "A", year: 3, phone: "9876543223" },
+        { id: "stu-001", name: "Arjun Menon", email: "arjun@student.edu", password: "password", role: "student", rollNumber: "CS21001", dob: "2004-05-15", department: "Computer Science", section: "A", year: 3, phone: "9876543220" },
+        { id: "stu-002", name: "Priya Krishnan", email: "priya.s@student.edu", password: "password", role: "student", rollNumber: "CS21002", dob: "2004-08-20", department: "Computer Science", section: "A", year: 3, phone: "9876543221" },
+        { id: "stu-003", name: "Rahul Singh", email: "rahul@student.edu", password: "password", role: "student", rollNumber: "CS21003", dob: "2004-03-10", department: "Computer Science", section: "A", year: 3, phone: "9876543222" },
+        { id: "stu-004", name: "Deepa Nair", email: "deepa@student.edu", password: "password", role: "student", rollNumber: "CS21004", dob: "2004-11-25", department: "Computer Science", section: "A", year: 3, phone: "9876543223" },
       ],
       departments: [
         { id: "dept-cs", name: "Computer Science", code: "CS", hod: "fac-001" },
@@ -464,16 +464,18 @@
         return safe;
       };
 
-      const loginByRollNumber = async (rollNumber) => {
+      const loginStudent = async (rollNumber, dob) => {
         const query = (rollNumber || '').trim().toUpperCase();
-        if (!query) throw new Error('Please enter your Roll / Register Number.');
+        const inputDob = (dob || '').trim();
+        if (!query) throw new Error('Please enter your Student Roll / Register Number.');
+        if (!inputDob) throw new Error('Please select your Date of Birth (DOB).');
 
         // 1. Try Live Cloud student login
         try {
           const res = await fetch(`${API_BASE}/auth/student-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rollNumber: query })
+            body: JSON.stringify({ rollNumber: query, dob: inputDob })
           });
           if (res.ok) {
             const data = await res.json();
@@ -481,8 +483,12 @@
             localStorage.setItem('college_auth_user', JSON.stringify(data.user));
             localStorage.setItem('college_auth_token', data.token);
             return data.user;
+          } else {
+            const errData = await res.json();
+            if (errData.error) throw new Error(errData.error);
           }
         } catch (err) {
+          if (err.message && err.message.includes('Date of Birth')) throw err;
           console.warn('Cloud student login fallback to local DB:', err);
         }
 
@@ -490,6 +496,13 @@
         const db = loadDB();
         const found = db.users.find(u => u.role === 'student' && u.rollNumber && u.rollNumber.trim().toUpperCase() === query);
         if (!found) throw new Error(`No student found with Roll Number "${query}". Please check your Roll Number.`);
+        
+        if (found.dob && found.dob.trim()) {
+          if (found.dob.trim() !== inputDob) {
+            throw new Error(`Date of Birth does not match records for Roll No ${query}.`);
+          }
+        }
+
         const { password: _p, ...safe } = found;
         setUser(safe);
         localStorage.setItem('college_auth_user', JSON.stringify(safe));
@@ -532,7 +545,7 @@
         localStorage.removeItem('college_auth_token');
       };
 
-      return <AuthContext.Provider value={{ user, login, loginByRollNumber, demoLogin, logout }}>{children}</AuthContext.Provider>;
+      return <AuthContext.Provider value={{ user, login, loginStudent, loginByRollNumber: loginStudent, demoLogin, logout }}>{children}</AuthContext.Provider>;
     }
 
     function AppProvider({ children }) {
@@ -880,12 +893,13 @@
 
     // Login Page (Separated Student & Staff/Admin Portals)
     function LoginPage() {
-      const { login, loginByRollNumber, demoLogin } = useAuth();
+      const { login, loginStudent, demoLogin } = useAuth();
       const [portalTab, setPortalTab] = useState('student'); // 'student' | 'staff'
       const [staffRole, setStaffRole] = useState('faculty'); // 'faculty' | 'admin'
       
       // Student form state
       const [rollNumber, setRollNumber] = useState('');
+      const [dob, setDob] = useState('');
       
       // Staff/Admin form state
       const [email, setEmail] = useState('');
@@ -899,9 +913,9 @@
         setError('');
         setLoading(true);
         try {
-          await loginByRollNumber(rollNumber);
+          await loginStudent(rollNumber, dob);
         } catch (err) {
-          setError(err.message || 'Student not found with this Roll Number');
+          setError(err.message || 'Student not found or Date of Birth does not match.');
         } finally {
           setLoading(false);
         }
@@ -960,7 +974,7 @@
               >
                 <span className="text-lg">🎓</span>
                 <span>Student Sign In</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/20">Roll No Only</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/20">Roll No & DOB</span>
               </button>
 
               <button
@@ -987,7 +1001,7 @@
                 </div>
               )}
 
-              {/* 🎓 STUDENT PORTAL (Roll Number Only) */}
+              {/* 🎓 STUDENT PORTAL (Roll Number & Date of Birth) */}
               {portalTab === 'student' && (
                 <div className="space-y-6">
                   <div>
@@ -996,16 +1010,16 @@
                         <span>🎓</span> Student Access Portal
                       </h2>
                       <span className="text-[11px] font-bold text-purple-300 bg-purple-950/60 px-2.5 py-1 rounded-full border border-purple-500/30">
-                        No Password Required
+                        Roll No + DOB
                       </span>
                     </div>
-                    <p className="text-slate-400 text-xs">Enter your Roll / Register Number to check attendance & apply leaves</p>
+                    <p className="text-slate-400 text-xs">Enter your Roll / Register Number and Date of Birth to access your attendance</p>
                   </div>
 
                   <form onSubmit={handleStudentSubmit} className="space-y-5">
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
-                        Student Roll / Register Number
+                        Student Roll / Register Number *
                       </label>
                       <div className="relative">
                         <input
@@ -1029,13 +1043,27 @@
                       </div>
                     </div>
 
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center justify-between">
+                        <span>Date of Birth (DOB) *</span>
+                        <span className="text-[10px] text-slate-400 font-normal lowercase">(as in college records)</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={dob}
+                        onChange={e => { setDob(e.target.value); setError(''); }}
+                        required
+                        className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-bold text-sm rounded-2xl px-4 py-3.5 outline-none transition-all cursor-pointer"
+                      />
+                    </div>
+
                     <button
                       type="submit"
-                      disabled={loading || !rollNumber.trim()}
+                      disabled={loading || !rollNumber.trim() || !dob.trim()}
                       className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold rounded-2xl text-sm transition-all cursor-pointer shadow-xl shadow-purple-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       <span>🚀</span>
-                      <span>{loading ? 'Verifying Roll Number...' : 'Enter Student Portal →'}</span>
+                      <span>{loading ? 'Verifying Credentials...' : 'Enter Student Portal →'}</span>
                     </button>
                   </form>
                 </div>
@@ -1574,6 +1602,7 @@
         email: '',
         role: 'student',
         rollNumber: '',
+        dob: '2004-01-01',
         employeeId: '',
         section: 'A',
         year: 1,
@@ -1596,6 +1625,7 @@
           email: '',
           role: newU.role,
           rollNumber: '',
+          dob: '2004-01-01',
           employeeId: '',
           section: 'A',
           year: 1,
@@ -1798,6 +1828,20 @@
                         placeholder="e.g. CS21005"
                         value={newU.rollNumber}
                         onChange={e => setNewU({...newU, rollNumber: e.target.value.toUpperCase()})}
+                        required
+                        className="input-field bg-white border-indigo-300 focus:border-indigo-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Student Specific: Date of Birth */}
+                  {newU.role === 'student' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-indigo-700 mb-1">Date of Birth (DOB) *</label>
+                      <input
+                        type="date"
+                        value={newU.dob || '2004-01-01'}
+                        onChange={e => setNewU({...newU, dob: e.target.value})}
                         required
                         className="input-field bg-white border-indigo-300 focus:border-indigo-500"
                       />

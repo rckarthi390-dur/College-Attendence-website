@@ -142,13 +142,23 @@ router.post('/demo-login', async (req, res) => {
   res.json({ token, user: payload });
 });
 
-// POST /api/auth/student-login (student logs in by rollNumber alone)
+// POST /api/auth/student-login (student logs in by rollNumber & date of birth)
 router.post('/student-login', (req, res) => {
-  const { rollNumber } = req.body;
+  const { rollNumber, dob } = req.body;
   if (!rollNumber) return res.status(400).json({ error: 'Roll number is required.' });
+  if (!dob) return res.status(400).json({ error: 'Date of Birth (DOB) is required.' });
+
   const query = rollNumber.trim().toUpperCase();
+  const inputDob = dob.trim();
+
   const student = db.get('users').find(u => u.role === 'student' && u.rollNumber && u.rollNumber.toUpperCase() === query).value();
   if (!student) return res.status(404).json({ error: `Student with Roll Number "${query}" not found.` });
+
+  if (student.dob && student.dob.trim()) {
+    if (student.dob.trim() !== inputDob) {
+      return res.status(401).json({ error: `Date of Birth does not match records for Roll No ${query}.` });
+    }
+  }
 
   const payload = {
     id: student.id,
@@ -157,6 +167,7 @@ router.post('/student-login', (req, res) => {
     role: 'student',
     department: student.department,
     rollNumber: student.rollNumber,
+    dob: student.dob || inputDob,
     section: student.section || null,
     year: student.year || null,
   };
