@@ -374,15 +374,16 @@
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && Array.isArray(parsed.users)) {
-            // Remove all dummy demo students/staff from stored state
+            // Remove all dummy demo students/staff and specific requested removed student
             parsed.users = parsed.users.filter(u => {
               if (DEMO_USER_IDS.includes(u.id)) return false;
               if (u.email && DEMO_EMAILS.includes(u.email.toLowerCase())) return false;
+              if (u.rollNumber === '24UCSB025' || (u.role === 'student' && u.name && u.name.toLowerCase() === 'karthi')) return false;
               return true;
             });
             // Ensure primary Admin Karthi exists
             const karthiAdmin = { id: "admin-karthi", name: "karthi", email: "karthi@gmail.com", password: "karthi1234", role: "admin", department: "Administration", phone: "9876543219" };
-            const karthiIdx = parsed.users.findIndex(u => (u.email && u.email.toLowerCase() === 'karthi@gmail.com') || u.id === 'admin-karthi');
+            const karthiIdx = parsed.users.findIndex(u => u.id === 'admin-karthi' && u.role === 'admin');
             if (karthiIdx === -1) {
               parsed.users.unshift(karthiAdmin);
             } else {
@@ -758,8 +759,8 @@
 
       const deleteUser = async (id) => {
         const u = db.users.find(x => x.id === id);
-        if (u && (u.email === 'karthi@gmail.com' || u.email === 'admin@college.edu')) {
-          alert('Primary Administrator account cannot be deleted.');
+        if (u && u.id === 'admin-karthi' && u.role === 'admin') {
+          alert('Primary Administrator account (admin-karthi) cannot be deleted.');
           return;
         }
         updateDB(d => { d.users = d.users.filter(x => x.id !== id); return d; });
