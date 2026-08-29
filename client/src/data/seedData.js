@@ -4,7 +4,6 @@ export const SEED_DATA = {
     attendanceThreshold: 75,
     institutionName: "G.T.N. Arts College",
     academicYear: "2024-25",
-    estdYear: "1964",
     lateMarkWindow: 30,
   },
 

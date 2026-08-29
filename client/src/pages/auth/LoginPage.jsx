@@ -57,7 +57,7 @@ export default function LoginPage() {
             <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl shadow-xl">🎓</div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">College Attendance System</h1>
-          <p className="text-slate-400">G.T.N. Arts College · Estd. 1964</p>
+          <p className="text-slate-400">G.T.N. Arts College</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
