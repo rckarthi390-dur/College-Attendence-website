@@ -1913,6 +1913,24 @@
                     </div>
                   )}
 
+                  {/* Faculty & Admin Specific: Password Creation */}
+                  {(newU.role === 'faculty' || newU.role === 'admin') && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-emerald-700 mb-1 flex items-center justify-between">
+                        <span>Account Login Password *</span>
+                        <span className="text-[10px] text-slate-500 font-normal">Custom Password</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Set custom password (e.g. staff1234)"
+                        value={newU.password}
+                        onChange={e => setNewU({...newU, password: e.target.value})}
+                        required
+                        className="input-field bg-white border-emerald-300 focus:border-emerald-500 font-mono font-bold text-xs"
+                      />
+                    </div>
+                  )}
+
                   {/* Student Specific: Class / Section */}
                   {newU.role === 'student' && (
                     <div>
@@ -2014,9 +2032,30 @@
                         <td className="px-4 py-3 text-xs text-slate-600">{u.department}</td>
                         <td className="px-4 py-3 text-xs text-slate-500 font-mono">{u.email}</td>
                         <td className="px-4 py-3 text-right">
-                          <button onClick={() => deleteUser(u.id)} className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors">
-                            🗑️ Remove
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            {(u.role === 'faculty' || u.role === 'admin') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newPass = prompt(`Set new password for ${u.name} (${u.email}):`, '');
+                                  if (newPass && newPass.trim().length >= 4) {
+                                    updateUser(u.id, { password: newPass.trim() });
+                                    setUserAddedNotice(`Password updated successfully for ${u.name}!`);
+                                    setTimeout(() => setUserAddedNotice(''), 4000);
+                                  } else if (newPass !== null) {
+                                    alert('Password must be at least 4 characters long.');
+                                  }
+                                }}
+                                title="Change/Reset Login Password"
+                                className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold px-2 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition-colors cursor-pointer"
+                              >
+                                🔑 Password
+                              </button>
+                            )}
+                            <button onClick={() => deleteUser(u.id)} className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer">
+                              🗑️ Remove
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
