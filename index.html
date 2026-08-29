@@ -1969,19 +1969,21 @@
                     </div>
                   )}
 
-                  {/* Department */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Department *</label>
-                    <select
-                      value={newU.department}
-                      onChange={e => setNewU({...newU, department: e.target.value})}
-                      className="input-field bg-white"
-                    >
-                      {deptList.map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Department (For Students & Faculty only - Hidden for Administrator) */}
+                  {newU.role !== 'admin' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Department *</label>
+                      <select
+                        value={newU.department}
+                        onChange={e => setNewU({...newU, department: e.target.value})}
+                        className="input-field bg-white"
+                      >
+                        {deptList.map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end pt-1">
@@ -2033,7 +2035,9 @@
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-600">{u.department}</td>
+                        <td className="px-4 py-3 text-xs text-slate-600">
+                          {u.role === 'admin' ? <span className="text-slate-400 font-medium">—</span> : u.department}
+                        </td>
                         <td className="px-4 py-3 text-xs text-slate-500 font-mono">{u.email}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
