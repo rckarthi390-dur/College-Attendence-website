@@ -96,7 +96,7 @@ export default function MarkAttendance() {
           <SelectField label="Course *" value={courseId} onChange={v => { setCourseId(v); setLoaded(false); }}
             options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))} placeholder="Select course" required />
           <SelectField label="Section *" value={section} onChange={v => { setSection(v); setLoaded(false); }}
-            options={['A', 'B', 'C'].map(s => ({ value: s, label: `Section ${s}` }))} placeholder="Select section" required />
+            options={['A', 'B', 'C', 'D'].map(s => ({ value: s, label: `Section ${s}` }))} placeholder="Select section" required />
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Date *</label>
             <input type="date" value={date} onChange={e => { setDate(e.target.value); setLoaded(false); }} max={new Date().toISOString().split('T')[0]}

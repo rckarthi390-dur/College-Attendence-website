@@ -77,7 +77,7 @@ export default function ClassAnalytics() {
           <SelectField label="Course" value={courseId} onChange={setCourseId}
             options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))} placeholder="All Courses" />
           <SelectField label="Section" value={section} onChange={setSection}
-            options={['A', 'B', 'C'].map(s => ({ value: s, label: `Section ${s}` }))} placeholder="All Sections" />
+            options={['A', 'B', 'C', 'D'].map(s => ({ value: s, label: `Section ${s}` }))} placeholder="All Sections" />
         </div>
       </div>
 

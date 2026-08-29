@@ -88,7 +88,7 @@ export default function AttendanceHistory() {
           <SelectField label="Course *" value={courseId} onChange={v => { setCourseId(v); setLoaded(false); setDate(''); }}
             options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))} required />
           <SelectField label="Section *" value={section} onChange={v => { setSection(v); setLoaded(false); }}
-            options={['A', 'B', 'C'].map(s => ({ value: s, label: `Section ${s}` }))} required />
+            options={['A', 'B', 'C', 'D'].map(s => ({ value: s, label: `Section ${s}` }))} required />
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Date *<span className="text-red-500 ml-1">*</span></label>
             <select value={date} onChange={e => { setDate(e.target.value); setLoaded(false); }} className="input-field">
