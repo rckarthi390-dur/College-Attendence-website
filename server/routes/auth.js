@@ -142,6 +142,26 @@ router.post('/demo-login', async (req, res) => {
   res.json({ token, user: payload });
 });
 
+function normalizeDob(str) {
+  if (!str) return '';
+  const clean = str.trim();
+  const ddmmyyyy = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (ddmmyyyy) {
+    const day = ddmmyyyy[1].padStart(2, '0');
+    const month = ddmmyyyy[2].padStart(2, '0');
+    const year = ddmmyyyy[3];
+    return `${year}-${month}-${day}`;
+  }
+  const yyyymmdd = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (yyyymmdd) {
+    const year = yyyymmdd[1];
+    const month = yyyymmdd[2].padStart(2, '0');
+    const day = yyyymmdd[3].padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return clean;
+}
+
 // POST /api/auth/student-login (student logs in by rollNumber & date of birth)
 router.post('/student-login', (req, res) => {
   const { rollNumber, dob } = req.body;
@@ -155,7 +175,7 @@ router.post('/student-login', (req, res) => {
   if (!student) return res.status(404).json({ error: `Student with Roll Number "${query}" not found.` });
 
   if (student.dob && student.dob.trim()) {
-    if (student.dob.trim() !== inputDob) {
+    if (normalizeDob(student.dob) !== normalizeDob(inputDob)) {
       return res.status(401).json({ error: `Date of Birth does not match records for Roll No ${query}.` });
     }
   }
