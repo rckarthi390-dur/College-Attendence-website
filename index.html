@@ -350,18 +350,18 @@
       let token = localStorage.getItem('college_auth_token');
       if (!token) {
         try {
-          const res = await fetch(`${API_BASE}/auth/demo-login`, {
+          const res = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role })
+            body: JSON.stringify({ email: 'karthi@gmail.com', password: 'karthi1234' })
           });
           if (res.ok) {
             const data = await res.json();
             token = data.token;
-            localStorage.setItem('college_auth_token', token);
+            if (token) localStorage.setItem('college_auth_token', token);
           }
         } catch (e) {
-          console.warn('Could not obtain cloud sync token:', e);
+          // Cloud backend might be offline or sleeping
         }
       }
       return token;
@@ -570,50 +570,128 @@
         });
       }, []);
 
-      // Pull latest cloud data across all devices
+      // Pull latest cloud data across all devices with non-destructive merge
       const syncWithCloud = useCallback(async () => {
         try {
           setIsSyncing(true);
           const token = await getOrFetchCloudToken('admin');
-          if (!token) return;
+          if (!token) {
+            setIsSyncing(false);
+            return;
+          }
           const headers = { 'Authorization': `Bearer ${token}` };
 
-          const [usersRes, coursesRes, leavesRes, settingsRes, attRes] = await Promise.allSettled([
+          const [usersRes, deptsRes, coursesRes, leavesRes, settingsRes, attRes] = await Promise.allSettled([
             fetch(`${API_BASE}/users`, { headers }),
+            fetch(`${API_BASE}/departments`, { headers }),
             fetch(`${API_BASE}/courses`, { headers }),
             fetch(`${API_BASE}/leaves`, { headers }),
             fetch(`${API_BASE}/settings`, { headers }),
             fetch(`${API_BASE}/attendance`, { headers })
           ]);
 
-          const updates = {};
-          if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
-            const users = await usersRes.value.json();
-            if (Array.isArray(users) && users.length > 0) updates.users = users;
-          }
-          if (coursesRes.status === 'fulfilled' && coursesRes.value.ok) {
-            const courses = await coursesRes.value.json();
-            if (Array.isArray(courses) && courses.length > 0) updates.courses = courses;
-          }
-          if (leavesRes.status === 'fulfilled' && leavesRes.value.ok) {
-            const leaves = await leavesRes.value.json();
-            if (Array.isArray(leaves)) updates.leaves = leaves;
-          }
-          if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
-            const settings = await settingsRes.value.json();
-            if (settings && settings.institutionName) updates.settings = settings;
-          }
-          if (attRes.status === 'fulfilled' && attRes.value.ok) {
-            const attendance = await attRes.value.json();
-            if (Array.isArray(attendance)) updates.attendance = attendance;
-          }
+          // Safe non-destructive merge
+          updateDB(d => {
+            // 1. Merge users
+            if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
+              usersRes.value.json().then(cloudUsers => {
+                if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+                  updateDB(current => {
+                    const existingUserIds = new Set(current.users.map(u => u.id));
+                    const existingEmails = new Set(current.users.map(u => (u.email || '').toLowerCase()));
+                    let hasNew = false;
+                    cloudUsers.forEach(cu => {
+                      if (!DEMO_USER_IDS.includes(cu.id) && !DEMO_EMAILS.includes((cu.email || '').toLowerCase())) {
+                        if (!existingUserIds.has(cu.id) && (!cu.email || !existingEmails.has(cu.email.toLowerCase()))) {
+                          current.users.push(cu);
+                          existingUserIds.add(cu.id);
+                          hasNew = true;
+                        }
+                      }
+                    });
+                    return current;
+                  });
+                }
+              }).catch(() => {});
+            }
 
-          if (Object.keys(updates).length > 0) {
-            updateDB(d => ({ ...d, ...updates }));
-          }
+            // 2. Merge departments
+            if (deptsRes.status === 'fulfilled' && deptsRes.value.ok) {
+              deptsRes.value.json().then(cloudDepts => {
+                if (Array.isArray(cloudDepts)) {
+                  updateDB(current => {
+                    if (!Array.isArray(current.departments)) current.departments = [];
+                    const deptNames = new Set(current.departments.map(x => x.name.toLowerCase()));
+                    cloudDepts.forEach(cd => {
+                      if (!deptNames.has(cd.name.toLowerCase())) {
+                        current.departments.push(cd);
+                        deptNames.add(cd.name.toLowerCase());
+                      }
+                    });
+                    return current;
+                  });
+                }
+              }).catch(() => {});
+            }
+
+            // 3. Merge courses
+            if (coursesRes.status === 'fulfilled' && coursesRes.value.ok) {
+              coursesRes.value.json().then(cloudCourses => {
+                if (Array.isArray(cloudCourses)) {
+                  updateDB(current => {
+                    if (!Array.isArray(current.courses)) current.courses = [];
+                    const courseCodes = new Set(current.courses.map(c => (c.code || c.id || '').toUpperCase()));
+                    cloudCourses.forEach(cc => {
+                      const code = (cc.code || cc.id || '').toUpperCase();
+                      if (code && !courseCodes.has(code)) {
+                        current.courses.push(cc);
+                        courseCodes.add(code);
+                      }
+                    });
+                    return current;
+                  });
+                }
+              }).catch(() => {});
+            }
+
+            // 4. Merge attendance
+            if (attRes.status === 'fulfilled' && attRes.value.ok) {
+              attRes.value.json().then(cloudAtt => {
+                if (Array.isArray(cloudAtt)) {
+                  updateDB(current => {
+                    if (!Array.isArray(current.attendance)) current.attendance = [];
+                    const attKeys = new Set(current.attendance.map(a => `${a.studentId}_${a.courseId}_${a.date}`));
+                    cloudAtt.forEach(ca => {
+                      const key = `${ca.studentId}_${ca.courseId}_${ca.date}`;
+                      if (!attKeys.has(key)) {
+                        current.attendance.push(ca);
+                        attKeys.add(key);
+                      }
+                    });
+                    return current;
+                  });
+                }
+              }).catch(() => {});
+            }
+
+            // 5. Merge settings
+            if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
+              settingsRes.value.json().then(cloudSettings => {
+                if (cloudSettings && cloudSettings.institutionName) {
+                  updateDB(current => {
+                    current.settings = { ...current.settings, ...cloudSettings };
+                    return current;
+                  });
+                }
+              }).catch(() => {});
+            }
+
+            return d;
+          });
+
           setLastSync(new Date());
         } catch (err) {
-          console.warn('Cloud sync error:', err);
+          console.warn('Cloud sync background error:', err);
         } finally {
           setIsSyncing(false);
         }
