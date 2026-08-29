@@ -2,7 +2,7 @@
 export const SEED_DATA = {
   settings: {
     attendanceThreshold: 75,
-    institutionName: "Sri Venkateswara College of Engineering",
+    institutionName: "G.T.N. Arts College",
     academicYear: "2024-25",
     lateMarkWindow: 30,
   },
