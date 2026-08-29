@@ -328,7 +328,6 @@
         { id: "stu-004", name: "Deepa Nair", email: "deepa@student.edu", password: "password", role: "student", rollNumber: "CS21004", dob: "2004-11-25", department: "Computer Science", section: "A", year: 3, phone: "9876543223" },
       ],
       departments: [
-        { id: "dept-adm", name: "Administration", code: "ADM", hod: "admin-karthi" },
         { id: "dept-cs", name: "Computer Science", code: "CS", hod: "fac-001" },
         { id: "dept-ec", name: "Electronics", code: "EC", hod: "fac-002" },
       ],
@@ -407,11 +406,8 @@
                 parsed.users.unshift(adm);
               }
             });
-            // Guarantee Administration department is present
             if (Array.isArray(parsed.departments)) {
-              if (!parsed.departments.some(d => d.name === 'Administration')) {
-                parsed.departments.unshift({ id: "dept-adm", name: "Administration", code: "ADM", hod: "admin-karthi" });
-              }
+              parsed.departments = parsed.departments.filter(d => d.name !== 'Administration');
             }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
             return parsed;
@@ -1698,8 +1694,9 @@
 
       // Compute unique department list
       const deptList = useMemo(() => {
-        const set = new Set(['Administration', 'Computer Science', 'Electronics', ...departments.map(d => d.name)]);
-        users.forEach(u => { if (u.department) set.add(u.department); });
+        const set = new Set(['Computer Science', 'Electronics', ...departments.map(d => d.name)]);
+        users.forEach(u => { if (u.department && u.department !== 'Administration') set.add(u.department); });
+        set.delete('Administration');
         return Array.from(set);
       }, [departments, users]);
 
@@ -1841,14 +1838,7 @@
                       <button
                         type="button"
                         key={r.id}
-                        onClick={() => {
-                          const nextRole = r.id;
-                          setNewU({
-                            ...newU,
-                            role: nextRole,
-                            department: nextRole === 'admin' ? 'Administration' : (newU.department === 'Administration' ? 'Computer Science' : newU.department)
-                          });
-                        }}
+                        onClick={() => setNewU({ ...newU, role: r.id })}
                         className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${newU.role === r.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
                       >
                         {r.label}
