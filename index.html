@@ -1081,6 +1081,31 @@
       const [error, setError] = useState('');
       const [loading, setLoading] = useState(false);
 
+      // Pre-sync latest cloud records on login page load across any device
+      useEffect(() => {
+        getOrFetchCloudToken('admin').then(token => {
+          if (token) {
+            fetch(`${API_BASE}/users`, { headers: { 'Authorization': `Bearer ${token}` } })
+              .then(res => res.ok ? res.json() : null)
+              .then(cloudUsers => {
+                if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+                  const db = loadDB();
+                  const existingIds = new Set(db.users.map(x => x.id));
+                  let updated = false;
+                  cloudUsers.forEach(cu => {
+                    if (!DEMO_USER_IDS.includes(cu.id) && !existingIds.has(cu.id)) {
+                      db.users.push(cu);
+                      existingIds.add(cu.id);
+                      updated = true;
+                    }
+                  });
+                  if (updated) saveDB(db);
+                }
+              }).catch(() => {});
+          }
+        });
+      }, []);
+
       const handleDobChange = (e) => {
         let val = e.target.value.replace(/\D/g, ''); // digits only
         if (val.length > 8) val = val.slice(0, 8);
@@ -2876,6 +2901,7 @@
     // Main App Shell
     function App() {
       const { user, logout } = useAuth();
+      const { syncWithCloud, isSyncing, lastSync } = useApp();
       const [sidebarOpen, setSidebarOpen] = useState(false);
       if (!user) return <LoginPage />;
 
@@ -2890,17 +2916,33 @@
           {/* Sidebar */}
           <div className={`app-sidebar w-64 h-screen flex-shrink-0 bg-slate-900 text-white p-5 flex flex-col justify-between overflow-y-auto ${sidebarOpen ? 'open' : ''}`}>
             <div>
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-xl font-bold">🎓</div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-xl font-bold shadow-lg shadow-indigo-600/30">🎓</div>
                 <div>
-                  <h2 className="font-extrabold text-sm leading-tight">SVCE Portal</h2>
-                  <p className="text-[10px] text-slate-400">Attendance System</p>
+                  <h2 className="font-extrabold text-sm leading-tight text-white">G.T.N. Arts College</h2>
+                  <p className="text-[10px] text-indigo-300">Attendance Portal</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-white/5 rounded-xl border border-white/10 mb-6">
+              <div className="p-3 bg-white/5 rounded-xl border border-white/10 mb-4">
                 <p className="text-xs font-bold text-white truncate">{user.name}</p>
                 <p className="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">{user.role}</p>
+              </div>
+
+              {/* Cloud Sync Status Indicator */}
+              <div className="p-2.5 bg-indigo-950/60 rounded-xl border border-indigo-800/40 mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-[11px] text-indigo-200">
+                  <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`}></span>
+                  <span>{isSyncing ? 'Syncing...' : 'Multi-Device Live'}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={syncWithCloud}
+                  title="Force Sync with Cloud Database"
+                  className="text-[10px] bg-indigo-600/80 hover:bg-indigo-600 px-2 py-0.5 rounded text-white font-bold transition-all cursor-pointer"
+                >
+                  🔄 Sync
+                </button>
               </div>
             </div>
 

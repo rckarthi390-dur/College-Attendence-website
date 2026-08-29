@@ -37,23 +37,42 @@ router.get('/:id', authenticate, (req, res) => {
 
 // POST /api/users — create new user
 router.post('/', authenticate, requireRole('admin'), async (req, res) => {
-  const { name, email, password: rawPwd, role, department, section, year, rollNumber, employeeId, phone } = req.body;
-  if (!name || !email || !rawPwd || !role) {
-    return res.status(400).json({ error: 'name, email, password, role are required.' });
+  const { name, email, password: rawPwd, role, department, section, year, rollNumber, employeeId, phone, dob } = req.body;
+  if (!name || !role) {
+    return res.status(400).json({ error: 'Name and role are required.' });
   }
-  const exists = db.get('users').find({ email: email.toLowerCase() }).value();
-  if (exists) return res.status(409).json({ error: 'Email already registered.' });
 
-  const hashed = await bcrypt.hash(rawPwd, 10);
+  const userEmail = (email || (rollNumber ? `${rollNumber.toLowerCase()}@student.gtn.edu` : `${name.toLowerCase().replace(/\s+/g, '')}@gtn.edu`)).toLowerCase().trim();
+  const userPwd = rawPwd || (dob ? dob.replace(/-/g, '') : 'password');
+
+  const exists = db.get('users').find(u => 
+    (u.email && u.email.toLowerCase() === userEmail) || 
+    (rollNumber && u.rollNumber && u.rollNumber.toUpperCase() === rollNumber.toUpperCase()) || 
+    (employeeId && u.employeeId && u.employeeId.toUpperCase() === employeeId.toUpperCase())
+  ).value();
+
+  if (exists) {
+    return res.status(409).json({ error: 'User with this email, roll number, or employee ID already exists.' });
+  }
+
+  const hashed = await bcrypt.hash(userPwd, 10);
   const newUser = {
-    id: `usr-${uuidv4().slice(0, 8)}`,
-    name, email: email.toLowerCase(), password: hashed,
-    role, department: department || '', phone: phone || '',
-    section: section || null, year: year || null,
-    rollNumber: rollNumber || null, employeeId: employeeId || null,
+    id: req.body.id || `usr-${uuidv4().slice(0, 8)}`,
+    name: name.trim(),
+    email: userEmail,
+    password: hashed,
+    role,
+    department: department || '',
+    phone: phone || '',
+    dob: dob || '2004-01-01',
+    section: section || 'A',
+    year: Number(year) || 1,
+    rollNumber: rollNumber ? rollNumber.trim().toUpperCase() : null,
+    employeeId: employeeId ? employeeId.trim().toUpperCase() : null,
     courses: [],
     createdAt: new Date().toISOString(),
   };
+
   db.get('users').push(newUser).write();
   const { password, ...safe } = newUser;
   res.status(201).json(safe);
