@@ -979,76 +979,79 @@
       };
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4 relative overflow-hidden">
+        <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 px-3.5 py-8 sm:p-6 relative overflow-x-hidden">
           {/* Ambient Glowing Orbs */}
-          <div className="absolute top-10 right-10 w-96 h-96 bg-indigo-600/25 rounded-full blur-[100px] animate-pulse pointer-events-none" />
-          <div className="absolute bottom-10 left-10 w-96 h-96 bg-blue-600/25 rounded-full blur-[100px] animate-pulse pointer-events-none" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute top-10 right-10 w-72 sm:w-96 h-72 sm:h-96 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-10 left-10 w-72 sm:w-96 h-72 sm:h-96 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none" />
 
-          <div className="relative w-full max-w-2xl fade-in-slide z-10">
+          <div className="relative w-full max-w-lg mx-auto fade-in-slide z-10">
             {/* Header Brand */}
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-3xl shadow-xl shadow-indigo-500/20 mb-3 transition-transform duration-300 hover:scale-110">🎓</div>
-              <h1 className="text-3xl font-black text-white tracking-tight">College Attendance Portal</h1>
-              <p className="text-slate-400 text-sm mt-1 font-medium">Sri Venkateswara College of Engineering · 2024-25</p>
+            <div className="text-center mb-5 sm:mb-6">
+              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-2xl sm:text-3xl shadow-xl shadow-indigo-500/20 mb-2.5 sm:mb-3 transition-transform duration-300 hover:scale-110">🎓</div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">College Attendance Portal</h1>
+              <p className="text-slate-400 text-xs sm:text-sm mt-1 font-medium">Sri Venkateswara College of Engineering · 2024-25</p>
             </div>
 
             {/* Portal Switcher Tabs */}
-            <div className="flex bg-slate-900/80 p-1.5 rounded-2xl border border-white/15 mb-6 backdrop-blur-xl shadow-2xl">
+            <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-slate-900/90 rounded-2xl border border-white/15 mb-4 sm:mb-6 backdrop-blur-xl shadow-2xl">
               <button
                 type="button"
                 onClick={() => { setPortalTab('student'); setError(''); }}
-                className={`flex-1 py-3 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2.5 transition-all duration-300 ${
+                className={`py-2.5 sm:py-3 px-2 rounded-xl text-xs sm:text-sm font-extrabold flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all duration-300 ${
                   portalTab === 'student'
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <span className="text-lg">🎓</span>
-                <span>Student Sign In</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/20">Roll No & DOB</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base sm:text-lg">🎓</span>
+                  <span>Student Sign In</span>
+                </div>
+                <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-white/20 whitespace-nowrap">Roll No & DOB</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => { setPortalTab('staff'); setError(''); }}
-                className={`flex-1 py-3 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2.5 transition-all duration-300 ${
+                className={`py-2.5 sm:py-3 px-2 rounded-xl text-xs sm:text-sm font-extrabold flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all duration-300 ${
                   portalTab === 'staff'
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-600/30'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <span className="text-lg">👨‍🏫</span>
-                <span>Staff & Admin Sign In</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/20">Email & Password</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base sm:text-lg">👨‍🏫</span>
+                  <span>Staff & Admin</span>
+                </div>
+                <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-white/20 whitespace-nowrap">Email & Password</span>
               </button>
             </div>
 
             {/* Main Portal Card */}
-            <div className="bg-slate-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 sm:p-8 text-white shadow-2xl">
+            <div className="bg-slate-900/80 backdrop-blur-2xl border border-white/15 rounded-2xl sm:rounded-3xl p-4 sm:p-7 text-white shadow-2xl w-full">
               {error && (
-                <div className="mb-5 p-3.5 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs flex items-center gap-2.5 animate-shake">
-                  <span className="text-lg">⚠️</span>
-                  <span className="font-semibold">{error}</span>
+                <div className="mb-4 sm:mb-5 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs flex items-center gap-2.5 animate-shake">
+                  <span className="text-base sm:text-lg flex-shrink-0">⚠️</span>
+                  <span className="font-semibold leading-relaxed">{error}</span>
                 </div>
               )}
 
               {/* 🎓 STUDENT PORTAL (Roll Number & Date of Birth) */}
               {portalTab === 'student' && (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-5">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <h2 className="font-extrabold text-xl text-white flex items-center gap-2">
+                      <h2 className="font-extrabold text-lg sm:text-xl text-white flex items-center gap-2">
                         <span>🎓</span> Student Access Portal
                       </h2>
-                      <span className="text-[11px] font-bold text-purple-300 bg-purple-950/60 px-2.5 py-1 rounded-full border border-purple-500/30">
+                      <span className="text-[10px] sm:text-[11px] font-bold text-purple-300 bg-purple-950/60 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border border-purple-500/30 whitespace-nowrap">
                         Roll No + DOB
                       </span>
                     </div>
-                    <p className="text-slate-400 text-xs">Enter your Roll / Register Number and Date of Birth to access your attendance</p>
+                    <p className="text-slate-400 text-xs leading-relaxed">Enter your Student Roll Number and Date of Birth to view your attendance</p>
                   </div>
 
-                  <form onSubmit={handleStudentSubmit} className="space-y-5">
+                  <form onSubmit={handleStudentSubmit} className="space-y-4 sm:space-y-4.5">
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
                         Student Roll / Register Number *
@@ -1061,13 +1064,13 @@
                           required
                           autoFocus
                           placeholder="e.g. CS21001"
-                          className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-mono font-bold text-base rounded-2xl px-4 py-3.5 outline-none tracking-widest placeholder:text-slate-500 placeholder:tracking-normal transition-all"
+                          className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-mono font-bold text-sm sm:text-base rounded-xl sm:rounded-2xl px-3.5 sm:px-4 py-3 outline-none tracking-wider sm:tracking-widest placeholder:text-slate-500 placeholder:tracking-normal transition-all"
                         />
                         {rollNumber && (
                           <button
                             type="button"
                             onClick={() => setRollNumber('')}
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-white/10 rounded-full w-5 h-5 flex items-center justify-center"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-white/10 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer"
                           >
                             ✕
                           </button>
@@ -1090,13 +1093,13 @@
                           onChange={handleDobChange}
                           required
                           placeholder="DD/MM/YYYY (e.g. 15/05/2004)"
-                          className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-mono font-bold text-base rounded-2xl px-4 py-3.5 outline-none tracking-widest placeholder:text-slate-500 placeholder:tracking-normal transition-all"
+                          className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-mono font-bold text-sm sm:text-base rounded-xl sm:rounded-2xl px-3.5 sm:px-4 py-3 outline-none tracking-wider sm:tracking-widest placeholder:text-slate-500 placeholder:tracking-normal transition-all"
                         />
                         {dob && (
                           <button
                             type="button"
                             onClick={() => setDob('')}
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-white/10 rounded-full w-5 h-5 flex items-center justify-center"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-white/10 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer"
                           >
                             ✕
                           </button>
@@ -1107,7 +1110,7 @@
                     <button
                       type="submit"
                       disabled={loading || !rollNumber.trim() || !dob.trim()}
-                      className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold rounded-2xl text-sm transition-all cursor-pointer shadow-xl shadow-purple-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold rounded-xl sm:rounded-2xl text-xs sm:text-sm transition-all cursor-pointer shadow-xl shadow-purple-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
                     >
                       <span>🚀</span>
                       <span>{loading ? 'Verifying Credentials...' : 'Enter Student Portal →'}</span>
@@ -1118,20 +1121,20 @@
 
               {/* 👨‍🏫 STAFF & ADMINISTRATION PORTAL (Email & Password with Staff/Admin switch) */}
               {portalTab === 'staff' && (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-5">
                   <div>
-                    <h2 className="font-extrabold text-xl text-white flex items-center gap-2 mb-1">
+                    <h2 className="font-extrabold text-lg sm:text-xl text-white flex items-center gap-2 mb-1">
                       <span>👨‍🏫</span> Institutional Staff & Admin Login
                     </h2>
-                    <p className="text-slate-400 text-xs">Authorized portal for Faculty, Department Staff, and System Administrators</p>
+                    <p className="text-slate-400 text-xs leading-relaxed">Authorized portal for Faculty, Department Staff, and System Administrators</p>
                   </div>
 
                   {/* Sub-Role Selector: Faculty vs Admin */}
-                  <div className="flex p-1 bg-white/5 rounded-xl border border-white/10">
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-white/5 rounded-xl border border-white/10">
                     <button
                       type="button"
                       onClick={() => quickSelectStaff('faculty')}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                         staffRole === 'faculty'
                           ? 'bg-emerald-600 text-white shadow-md'
                           : 'text-slate-400 hover:text-white'
@@ -1143,17 +1146,17 @@
                     <button
                       type="button"
                       onClick={() => quickSelectStaff('admin')}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                         staffRole === 'admin'
                           ? 'bg-blue-600 text-white shadow-md'
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      <span>🛡️</span> Administrator (Admin)
+                      <span>🛡️</span> Admin (Karthi)
                     </button>
                   </div>
 
-                  <form onSubmit={handleStaffSubmit} className="space-y-4">
+                  <form onSubmit={handleStaffSubmit} className="space-y-3.5 sm:space-y-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-1">
                         {staffRole === 'admin' ? 'Admin Email or Username' : 'Faculty / Staff Email'}
@@ -1164,7 +1167,7 @@
                         onChange={e => { setEmail(e.target.value); setError(''); }}
                         required
                         placeholder={staffRole === 'admin' ? 'karthi@gmail.com' : 'anand@college.edu'}
-                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-4 py-2.5 text-sm outline-none placeholder:text-slate-500"
+                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-3.5 py-2.5 text-sm outline-none placeholder:text-slate-500"
                       />
                     </div>
 
@@ -1176,14 +1179,14 @@
                         onChange={e => { setPassword(e.target.value); setError(''); }}
                         required
                         placeholder="••••••••"
-                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-4 py-2.5 text-sm outline-none placeholder:text-slate-500"
+                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-3.5 py-2.5 text-sm outline-none placeholder:text-slate-500"
                       />
                     </div>
 
                     {/* Quick Demo Pre-fill helpers */}
-                    <div className="p-3 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between text-xs">
-                      <span className="text-slate-400 text-[11px]">⚡ Quick Demo Logins:</span>
-                      <div className="flex gap-2">
+                    <div className="p-2.5 sm:p-3 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <span className="text-slate-400 text-[11px]">⚡ Quick Demo Fill:</span>
+                      <div className="flex flex-wrap gap-1.5">
                         <button
                           type="button"
                           onClick={() => quickSelectStaff('faculty')}
@@ -1204,7 +1207,7 @@
                     <button
                       type="submit"
                       disabled={loading || !email.trim() || !password.trim()}
-                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-sm transition-all cursor-pointer shadow-lg shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-lg shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
                     >
                       <span>🔐</span>
                       <span>{loading ? 'Authenticating...' : `Sign In as ${staffRole === 'admin' ? 'Administrator' : 'Faculty / Staff'} →`}</span>
