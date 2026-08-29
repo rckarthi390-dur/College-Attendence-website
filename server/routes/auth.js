@@ -142,4 +142,26 @@ router.post('/demo-login', async (req, res) => {
   res.json({ token, user: payload });
 });
 
+// POST /api/auth/student-login (student logs in by rollNumber alone)
+router.post('/student-login', (req, res) => {
+  const { rollNumber } = req.body;
+  if (!rollNumber) return res.status(400).json({ error: 'Roll number is required.' });
+  const query = rollNumber.trim().toUpperCase();
+  const student = db.get('users').find(u => u.role === 'student' && u.rollNumber && u.rollNumber.toUpperCase() === query).value();
+  if (!student) return res.status(404).json({ error: `Student with Roll Number "${query}" not found.` });
+
+  const payload = {
+    id: student.id,
+    name: student.name,
+    email: student.email,
+    role: 'student',
+    department: student.department,
+    rollNumber: student.rollNumber,
+    section: student.section || null,
+    year: student.year || null,
+  };
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+  res.json({ token, user: payload });
+});
+
 module.exports = router;

@@ -464,6 +464,38 @@
         return safe;
       };
 
+      const loginByRollNumber = async (rollNumber) => {
+        const query = (rollNumber || '').trim().toUpperCase();
+        if (!query) throw new Error('Please enter your Roll / Register Number.');
+
+        // 1. Try Live Cloud student login
+        try {
+          const res = await fetch(`${API_BASE}/auth/student-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rollNumber: query })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUser(data.user);
+            localStorage.setItem('college_auth_user', JSON.stringify(data.user));
+            localStorage.setItem('college_auth_token', data.token);
+            return data.user;
+          }
+        } catch (err) {
+          console.warn('Cloud student login fallback to local DB:', err);
+        }
+
+        // 2. Fallback to Local DB
+        const db = loadDB();
+        const found = db.users.find(u => u.role === 'student' && u.rollNumber && u.rollNumber.trim().toUpperCase() === query);
+        if (!found) throw new Error(`No student found with Roll Number "${query}". Please check your Roll Number.`);
+        const { password: _p, ...safe } = found;
+        setUser(safe);
+        localStorage.setItem('college_auth_user', JSON.stringify(safe));
+        return safe;
+      };
+
       const demoLogin = async (role) => {
         // 1. Try Live Cloud Demo Login
         try {
@@ -500,7 +532,7 @@
         localStorage.removeItem('college_auth_token');
       };
 
-      return <AuthContext.Provider value={{ user, login, demoLogin, logout }}>{children}</AuthContext.Provider>;
+      return <AuthContext.Provider value={{ user, login, loginByRollNumber, demoLogin, logout }}>{children}</AuthContext.Provider>;
     }
 
     function AppProvider({ children }) {
@@ -846,20 +878,62 @@
 
     // ── Pages ───────────────────────────────────────────────────────────
 
-    // Login Page
+    // Login Page (Separated Student & Staff/Admin Portals)
     function LoginPage() {
-      const { login, demoLogin } = useAuth();
+      const { login, loginByRollNumber, demoLogin } = useAuth();
+      const [portalTab, setPortalTab] = useState('student'); // 'student' | 'staff'
+      const [staffRole, setStaffRole] = useState('faculty'); // 'faculty' | 'admin'
+      
+      // Student form state
+      const [rollNumber, setRollNumber] = useState('');
+      
+      // Staff/Admin form state
       const [email, setEmail] = useState('');
       const [password, setPassword] = useState('');
+      
       const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
 
-      const handleLoginSubmit = async (e) => {
+      const handleStudentSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
+        try {
+          await loginByRollNumber(rollNumber);
+        } catch (err) {
+          setError(err.message || 'Student not found with this Roll Number');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleStaffSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
         try {
           await login(email, password);
         } catch (err) {
-          setError(err.message || 'Invalid credentials');
+          setError(err.message || 'Invalid email or password');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const quickSelectStudent = (roll) => {
+        setRollNumber(roll);
+        setError('');
+      };
+
+      const quickSelectStaff = (role) => {
+        setStaffRole(role);
+        setError('');
+        if (role === 'admin') {
+          setEmail('karthi@gmail.com');
+          setPassword('karthi1234');
+        } else {
+          setEmail('anand@college.edu');
+          setPassword('password');
         }
       };
 
@@ -870,59 +944,232 @@
           <div className="absolute bottom-10 left-10 w-96 h-96 bg-blue-600/25 rounded-full blur-[100px] animate-pulse pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
 
-          <div className="relative w-full max-w-4xl fade-in-slide z-10">
-            <div className="text-center mb-8">
+          <div className="relative w-full max-w-2xl fade-in-slide z-10">
+            {/* Header Brand */}
+            <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-3xl shadow-xl shadow-indigo-500/20 mb-3 transition-transform duration-300 hover:scale-110">🎓</div>
-              <h1 className="text-3xl font-black text-white tracking-tight">College Attendance System</h1>
-              <p className="text-slate-400 text-sm mt-1 font-medium">Role-Based Attendance Portal · 2024-25</p>
+              <h1 className="text-3xl font-black text-white tracking-tight">College Attendance Portal</h1>
+              <p className="text-slate-400 text-sm mt-1 font-medium">Sri Venkateswara College of Engineering · 2024-25</p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Quick Demo Login */}
-              <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 text-white shadow-2xl">
-                <h2 className="font-bold text-lg mb-1 tracking-tight">Instant Demo Roles</h2>
-                <p className="text-slate-400 text-xs mb-4">Select any role to jump directly into the dashboard</p>
-                <div className="space-y-3">
-                  {[
-                    { role: 'faculty', label: 'Faculty / Staff', desc: 'Daily attendance, history edits, analytics', icon: '👨‍🏫', color: 'from-emerald-600 to-teal-600' },
-                    { role: 'student', label: 'Student Portal', desc: 'Subject %, date logs, OD requests', icon: '🎓', color: 'from-purple-600 to-indigo-600' },
-                    { role: 'admin', label: 'Administrator (Karthi)', desc: 'karthi@gmail.com · Full system access', icon: '🛡️', color: 'from-blue-600 to-indigo-600' },
-                  ].map(r => (
-                    <button key={r.role} onClick={() => demoLogin(r.role)} className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 hover:border-white/25 transition-all duration-300 text-left group hover:-translate-y-1 hover:shadow-lg">
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${r.color} flex items-center justify-center text-xl flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform duration-300`}>{r.icon}</div>
-                      <div>
-                        <p className="font-bold text-sm text-white group-hover:text-blue-300 transition-colors">{r.label}</p>
-                        <p className="text-slate-400 text-xs">{r.desc}</p>
-                      </div>
-                    </button>
-                  ))}
+            {/* Portal Switcher Tabs */}
+            <div className="flex bg-slate-900/80 p-1.5 rounded-2xl border border-white/15 mb-6 backdrop-blur-xl shadow-2xl">
+              <button
+                type="button"
+                onClick={() => { setPortalTab('student'); setError(''); }}
+                className={`flex-1 py-3 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2.5 transition-all duration-300 ${
+                  portalTab === 'student'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span className="text-lg">🎓</span>
+                <span>Student Sign In</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/20">Roll No Only</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setPortalTab('staff'); setError(''); }}
+                className={`flex-1 py-3 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2.5 transition-all duration-300 ${
+                  portalTab === 'staff'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span className="text-lg">👨‍🏫</span>
+                <span>Staff & Admin Sign In</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/20">Email & Password</span>
+              </button>
+            </div>
+
+            {/* Main Portal Card */}
+            <div className="bg-slate-900/70 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 sm:p-8 text-white shadow-2xl">
+              {error && (
+                <div className="mb-5 p-3.5 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs flex items-center gap-2.5 animate-shake">
+                  <span className="text-lg">⚠️</span>
+                  <span className="font-semibold">{error}</span>
                 </div>
-              </div>
+              )}
 
-              {/* Real Login Form */}
-              <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 text-white shadow-2xl">
-                <h2 className="font-bold text-lg mb-1">Institutional Sign In</h2>
-                <p className="text-slate-400 text-xs mb-4">Enter your college email & credentials</p>
-
-                {error && (
-                  <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs flex items-center gap-2 animate-shake">
-                    <span className="text-base">⚠️</span>
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
+              {/* 🎓 STUDENT PORTAL (Roll Number Only) */}
+              {portalTab === 'student' && (
+                <div className="space-y-6">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Email or Username</label>
-                    <input type="text" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} required placeholder="karthi@gmail.com" className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 placeholder-slate-500" />
+                    <div className="flex items-center justify-between mb-1">
+                      <h2 className="font-extrabold text-xl text-white flex items-center gap-2">
+                        <span>🎓</span> Student Access Portal
+                      </h2>
+                      <span className="text-[11px] font-bold text-purple-300 bg-purple-950/60 px-2.5 py-1 rounded-full border border-purple-500/30">
+                        No Password Required
+                      </span>
+                    </div>
+                    <p className="text-slate-400 text-xs">Enter your Roll / Register Number to check attendance & apply leaves</p>
                   </div>
+
+                  <form onSubmit={handleStudentSubmit} className="space-y-5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                        Student Roll / Register Number
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={rollNumber}
+                          onChange={e => { setRollNumber(e.target.value.toUpperCase()); setError(''); }}
+                          required
+                          autoFocus
+                          placeholder="e.g. CS21001"
+                          className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-mono font-bold text-base rounded-2xl px-4 py-3.5 outline-none tracking-widest placeholder:text-slate-500 placeholder:tracking-normal transition-all"
+                        />
+                        {rollNumber && (
+                          <button
+                            type="button"
+                            onClick={() => setRollNumber('')}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-white/10 rounded-full w-5 h-5 flex items-center justify-center"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick Student Roll Chips */}
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-400 mb-2">⚡ Instant Student Roll Numbers:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { roll: 'CS21001', name: 'Arjun (3rd Yr CS)' },
+                          { roll: 'CS21002', name: 'Priya (3rd Yr CS)' },
+                          { roll: 'CS21003', name: 'Rahul (3rd Yr CS)' },
+                          { roll: 'CS21004', name: 'Deepa (3rd Yr CS)' },
+                          { roll: 'EC21001', name: 'Vishnu (2nd Yr EC)' }
+                        ].map(s => (
+                          <button
+                            key={s.roll}
+                            type="button"
+                            onClick={() => quickSelectStudent(s.roll)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                              rollNumber === s.roll
+                                ? 'bg-purple-600 text-white border-purple-400 shadow-md'
+                                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/15 hover:border-purple-400/50'
+                            }`}
+                          >
+                            <span className="font-mono text-purple-300 font-bold mr-1">{s.roll}</span>
+                            <span className="text-slate-400 text-[10px]">· {s.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || !rollNumber.trim()}
+                      className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold rounded-2xl text-sm transition-all cursor-pointer shadow-xl shadow-purple-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <span>🚀</span>
+                      <span>{loading ? 'Verifying Roll Number...' : 'Enter Student Portal →'}</span>
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* 👨‍🏫 STAFF & ADMINISTRATION PORTAL (Email & Password with Staff/Admin switch) */}
+              {portalTab === 'staff' && (
+                <div className="space-y-6">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
-                    <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} required placeholder="••••••••" className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 placeholder-slate-500" />
+                    <h2 className="font-extrabold text-xl text-white flex items-center gap-2 mb-1">
+                      <span>👨‍🏫</span> Institutional Staff & Admin Login
+                    </h2>
+                    <p className="text-slate-400 text-xs">Authorized portal for Faculty, Department Staff, and System Administrators</p>
                   </div>
-                  <button type="submit" className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl text-sm hover:from-blue-700 hover:to-indigo-700 transition-all cursor-pointer shadow-lg shadow-indigo-600/30">Sign In →</button>
-                </form>
-              </div>
+
+                  {/* Sub-Role Selector: Faculty vs Admin */}
+                  <div className="flex p-1 bg-white/5 rounded-xl border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => quickSelectStaff('faculty')}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                        staffRole === 'faculty'
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span>👨‍🏫</span> Faculty / Staff
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => quickSelectStaff('admin')}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                        staffRole === 'admin'
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span>🛡️</span> Administrator (Admin)
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleStaffSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        {staffRole === 'admin' ? 'Admin Email or Username' : 'Faculty / Staff Email'}
+                      </label>
+                      <input
+                        type="text"
+                        value={email}
+                        onChange={e => { setEmail(e.target.value); setError(''); }}
+                        required
+                        placeholder={staffRole === 'admin' ? 'karthi@gmail.com' : 'anand@college.edu'}
+                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-4 py-2.5 text-sm outline-none placeholder:text-slate-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={e => { setPassword(e.target.value); setError(''); }}
+                        required
+                        placeholder="••••••••"
+                        className="w-full bg-white/10 border border-white/20 focus:border-blue-400 text-white rounded-xl px-4 py-2.5 text-sm outline-none placeholder:text-slate-500"
+                      />
+                    </div>
+
+                    {/* Quick Demo Pre-fill helpers */}
+                    <div className="p-3 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between text-xs">
+                      <span className="text-slate-400 text-[11px]">⚡ Quick Demo Logins:</span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => quickSelectStaff('faculty')}
+                          className="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg text-[11px] font-bold border border-emerald-500/30"
+                        >
+                          Faculty (Anand)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => quickSelectStaff('admin')}
+                          className="px-2.5 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-[11px] font-bold border border-blue-500/30"
+                        >
+                          Admin (Karthi)
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || !email.trim() || !password.trim()}
+                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-sm transition-all cursor-pointer shadow-lg shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <span>🔐</span>
+                      <span>{loading ? 'Authenticating...' : `Sign In as ${staffRole === 'admin' ? 'Administrator' : 'Faculty / Staff'} →`}</span>
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         </div>
