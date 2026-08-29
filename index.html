@@ -318,44 +318,30 @@
         lateMarkWindow: 30,
       },
       users: [
-        { id: "admin-karthi", name: "karthi", email: "karthi@gmail.com", password: "karthi1234", role: "admin", department: "Administration", phone: "9876543219" },
-        { id: "fac-001", name: "Prof. Anand Sharma", email: "anand@college.edu", password: "password", role: "faculty", department: "Computer Science", employeeId: "FAC001", phone: "9876543212" },
-        { id: "fac-002", name: "Dr. Meena Iyer", email: "meena@college.edu", password: "password", role: "faculty", department: "Electronics", employeeId: "FAC002", phone: "9876543213" },
-        { id: "stu-001", name: "Arjun Menon", email: "arjun@student.edu", password: "password", role: "student", rollNumber: "CS21001", dob: "2004-05-15", department: "Computer Science", section: "A", year: 3, phone: "9876543220" },
-        { id: "stu-002", name: "Priya Krishnan", email: "priya.s@student.edu", password: "password", role: "student", rollNumber: "CS21002", dob: "2004-08-20", department: "Computer Science", section: "A", year: 3, phone: "9876543221" },
-        { id: "stu-003", name: "Rahul Singh", email: "rahul@student.edu", password: "password", role: "student", rollNumber: "CS21003", dob: "2004-03-10", department: "Computer Science", section: "A", year: 3, phone: "9876543222" },
-        { id: "stu-004", name: "Deepa Nair", email: "deepa@student.edu", password: "password", role: "student", rollNumber: "CS21004", dob: "2004-11-25", department: "Computer Science", section: "A", year: 3, phone: "9876543223" },
+        { id: "admin-karthi", name: "karthi", email: "karthi@gmail.com", password: "karthi1234", role: "admin", department: "Administration", phone: "9876543219" }
       ],
       departments: [
-        { id: "dept-cs", name: "Computer Science", code: "CS", hod: "fac-001" },
-        { id: "dept-ec", name: "Electronics", code: "EC", hod: "fac-002" },
+        { id: "dept-cs", name: "Computer Science", code: "CS", hod: "" },
+        { id: "dept-ec", name: "Electronics", code: "EC", hod: "" },
       ],
       courses: [
-        { id: "CS101", name: "Data Structures & Algorithms", code: "CS101", department: "Computer Science", credits: 4, faculty: "fac-001" },
-        { id: "CS201", name: "Operating Systems", code: "CS201", department: "Computer Science", credits: 4, faculty: "fac-001" },
-        { id: "CS301", name: "Database Management Systems", code: "CS301", department: "Computer Science", credits: 3, faculty: "fac-001" },
-        { id: "EC101", name: "Digital Electronics", code: "EC101", department: "Electronics", credits: 4, faculty: "fac-002" },
+        { id: "CS101", name: "Data Structures & Algorithms", code: "CS101", department: "Computer Science", credits: 4, faculty: "" },
+        { id: "CS201", name: "Operating Systems", code: "CS201", department: "Computer Science", credits: 4, faculty: "" },
+        { id: "CS301", name: "Database Management Systems", code: "CS301", department: "Computer Science", credits: 3, faculty: "" },
+        { id: "EC101", name: "Digital Electronics", code: "EC101", department: "Electronics", credits: 4, faculty: "" },
       ],
-      attendance: [
-        { id: "att-001", studentId: "stu-001", courseId: "CS101", date: "2024-08-05", status: "present", markedBy: "fac-001", markedAt: "2024-08-05T09:15:00Z" },
-        { id: "att-002", studentId: "stu-002", courseId: "CS101", date: "2024-08-05", status: "present", markedBy: "fac-001", markedAt: "2024-08-05T09:15:00Z" },
-        { id: "att-003", studentId: "stu-003", courseId: "CS101", date: "2024-08-05", status: "absent", markedBy: "fac-001", markedAt: "2024-08-05T09:15:00Z" },
-        { id: "att-004", studentId: "stu-004", courseId: "CS101", date: "2024-08-05", status: "late", markedBy: "fac-001", markedAt: "2024-08-05T09:15:00Z" },
-        { id: "att-005", studentId: "stu-001", courseId: "CS201", date: "2024-08-05", status: "present", markedBy: "fac-001", markedAt: "2024-08-05T11:15:00Z" },
-        { id: "att-006", studentId: "stu-002", courseId: "CS201", date: "2024-08-05", status: "on-duty", markedBy: "fac-001", markedAt: "2024-08-05T11:15:00Z" },
-        { id: "att-007", studentId: "stu-001", courseId: "CS101", date: "2024-08-06", status: "present", markedBy: "fac-001", markedAt: "2024-08-06T09:10:00Z" },
-        { id: "att-008", studentId: "stu-002", courseId: "CS101", date: "2024-08-06", status: "absent", markedBy: "fac-001", markedAt: "2024-08-06T09:10:00Z" },
-        { id: "att-009", studentId: "stu-003", courseId: "CS101", date: "2024-08-06", status: "present", markedBy: "fac-001", markedAt: "2024-08-06T09:10:00Z" },
-        { id: "att-010", studentId: "stu-004", courseId: "CS101", date: "2024-08-06", status: "present", markedBy: "fac-001", markedAt: "2024-08-06T09:10:00Z" },
-      ],
-      auditLog: [
-        { id: "audit-001", attendanceId: "att-003", studentId: "stu-003", courseId: "CS101", date: "2024-08-05", oldStatus: "absent", newStatus: "on-duty", modifiedBy: "fac-001", modifiedAt: "2024-08-08T10:30:00Z", reason: "Student had official lab duty" }
-      ],
-      leaves: [
-        { id: "leave-001", studentId: "stu-001", type: "leave", fromDate: "2024-08-10", toDate: "2024-08-12", reason: "Family function", status: "approved", appliedAt: "2024-08-08T09:00:00Z", reviewedBy: "fac-001", reviewedAt: "2024-08-09T10:00:00Z" },
-        { id: "leave-002", studentId: "stu-002", type: "od", fromDate: "2024-08-15", toDate: "2024-08-15", reason: "Inter-college Hackathon competition", status: "pending", appliedAt: "2024-08-12T11:00:00Z", reviewedBy: null, reviewedAt: null }
-      ]
+      attendance: [],
+      auditLog: [],
+      leaves: []
     };
+
+    const DEMO_USER_IDS = ['admin-001', 'admin-002', 'fac-001', 'fac-002', 'fac-003', 'fac-004', 'fac-005', 'stu-001', 'stu-002', 'stu-003', 'stu-004', 'stu-005', 'stu-006', 'stu-007', 'stu-008', 'stu-009', 'stu-010'];
+    const DEMO_EMAILS = [
+      'admin@college.edu', 'priya.admin@college.edu', 'anand@college.edu', 'meena@college.edu',
+      'suresh@college.edu', 'kavitha@college.edu', 'raman@college.edu', 'arjun@student.edu',
+      'priya.s@student.edu', 'rahul@student.edu', 'deepa@student.edu', 'karthik@student.edu',
+      'ananya@student.edu', 'vishnu@student.edu', 'lakshmi@student.edu', 'arun@student.edu', 'sneha@student.edu'
+    ];
 
     const API_BASE = 'https://college-attendence-website.onrender.com/api';
 
@@ -388,19 +374,20 @@
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && Array.isArray(parsed.users)) {
-            SEED_DATA.users.forEach(seedU => {
-              const existingIdx = parsed.users.findIndex(u => (u.email && u.email.toLowerCase() === seedU.email.toLowerCase()) || u.id === seedU.id);
-              if (existingIdx === -1) {
-                parsed.users.unshift(seedU);
-              } else {
-                parsed.users[existingIdx].email = seedU.email;
-                parsed.users[existingIdx].password = seedU.password;
-                parsed.users[existingIdx].name = seedU.name;
-                parsed.users[existingIdx].role = seedU.role;
-              }
+            // Remove all dummy demo students/staff from stored state
+            parsed.users = parsed.users.filter(u => {
+              if (DEMO_USER_IDS.includes(u.id)) return false;
+              if (u.email && DEMO_EMAILS.includes(u.email.toLowerCase())) return false;
+              return true;
             });
-            // Remove Dr. Rajesh Kumar (admin-001 / admin@college.edu)
-            parsed.users = parsed.users.filter(u => u.id !== 'admin-001' && (u.email ? u.email.toLowerCase() !== 'admin@college.edu' : true));
+            // Ensure primary Admin Karthi exists
+            const karthiAdmin = { id: "admin-karthi", name: "karthi", email: "karthi@gmail.com", password: "karthi1234", role: "admin", department: "Administration", phone: "9876543219" };
+            const karthiIdx = parsed.users.findIndex(u => (u.email && u.email.toLowerCase() === 'karthi@gmail.com') || u.id === 'admin-karthi');
+            if (karthiIdx === -1) {
+              parsed.users.unshift(karthiAdmin);
+            } else {
+              parsed.users[karthiIdx] = { ...parsed.users[karthiIdx], ...karthiAdmin };
+            }
             if (Array.isArray(parsed.departments)) {
               parsed.departments = parsed.departments.filter(d => d.name !== 'Administration');
             }

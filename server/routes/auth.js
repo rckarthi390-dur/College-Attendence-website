@@ -6,11 +6,19 @@ const { JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
 
+const DEMO_USER_IDS = ['admin-001', 'admin-002', 'fac-001', 'fac-002', 'fac-003', 'fac-004', 'fac-005', 'stu-001', 'stu-002', 'stu-003', 'stu-004', 'stu-005', 'stu-006', 'stu-007', 'stu-008', 'stu-009', 'stu-010'];
+const DEMO_EMAILS = [
+  'admin@college.edu', 'priya.admin@college.edu', 'anand@college.edu', 'meena@college.edu',
+  'suresh@college.edu', 'kavitha@college.edu', 'raman@college.edu', 'arjun@student.edu',
+  'priya.s@student.edu', 'rahul@student.edu', 'deepa@student.edu', 'karthik@student.edu',
+  'ananya@student.edu', 'vishnu@student.edu', 'lakshmi@student.edu', 'arun@student.edu', 'sneha@student.edu'
+];
+
 // Helper to ensure default admins exist
 async function ensureAdminsExist() {
-  // Prune Dr. Rajesh Kumar if present in server DB
-  db.get('users').remove({ id: 'admin-001' }).write();
-  db.get('users').remove({ email: 'admin@college.edu' }).write();
+  // Prune all demo dummy accounts from server DB
+  DEMO_USER_IDS.forEach(id => db.get('users').remove({ id }).write());
+  DEMO_EMAILS.forEach(email => db.get('users').remove({ email }).write());
 
   const karthiAdmin = db.get('users').find({ email: 'karthi@gmail.com' }).value();
   if (!karthiAdmin) {
