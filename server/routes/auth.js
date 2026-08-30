@@ -140,20 +140,27 @@ router.post('/demo-login', async (req, res) => {
 
 function normalizeDob(str) {
   if (!str) return '';
-  const clean = str.trim();
-  const ddmmyyyy = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  const clean = str.trim().replace(/\s+/g, '');
+  const ddmmyyyy = clean.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
   if (ddmmyyyy) {
     const day = ddmmyyyy[1].padStart(2, '0');
     const month = ddmmyyyy[2].padStart(2, '0');
     const year = ddmmyyyy[3];
     return `${year}-${month}-${day}`;
   }
-  const yyyymmdd = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  const yyyymmdd = clean.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
   if (yyyymmdd) {
     const year = yyyymmdd[1];
     const month = yyyymmdd[2].padStart(2, '0');
     const day = yyyymmdd[3].padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+  if (/^\d{8}$/.test(clean)) {
+    if (clean.startsWith('19') || clean.startsWith('20')) {
+      return `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}`;
+    } else {
+      return `${clean.slice(4, 8)}-${clean.slice(2, 4)}-${clean.slice(0, 2)}`;
+    }
   }
   return clean;
 }
@@ -167,12 +174,26 @@ router.post('/student-login', (req, res) => {
   const query = rollNumber.trim().toUpperCase();
   const inputDob = dob.trim();
 
-  const student = db.get('users').find(u => u.role === 'student' && u.rollNumber && u.rollNumber.toUpperCase() === query).value();
-  if (!student) return res.status(404).json({ error: `Student with Roll Number "${query}" not found.` });
+  const student = db.get('users').find(u => 
+    u.role === 'student' && 
+    ((u.rollNumber && u.rollNumber.trim().toUpperCase() === query) ||
+     (u.email && u.email.trim().toUpperCase() === query))
+  ).value();
+
+  if (!student) return res.status(404).json({ error: `Student with Roll / Register Number "${query}" not found.` });
 
   if (student.dob && student.dob.trim()) {
-    if (normalizeDob(student.dob) !== normalizeDob(inputDob)) {
-      return res.status(401).json({ error: `Date of Birth does not match records for Roll No ${query}.` });
+    const normStored = normalizeDob(student.dob);
+    const normInput = normalizeDob(inputDob);
+    const rawStoredDigits = (student.dob || '').replace(/\D/g, '');
+    const rawInputDigits = (inputDob || '').replace(/\D/g, '');
+
+    const isMatch = (normStored === normInput) || 
+                    (rawStoredDigits === rawInputDigits) ||
+                    (normStored && normInput && normStored.replace(/-/g, '') === normInput.replace(/-/g, ''));
+
+    if (!isMatch) {
+      return res.status(401).json({ error: `Date of Birth does not match records for Roll No "${query}".` });
     }
   }
 

@@ -479,20 +479,27 @@
 
     function normalizeDob(str) {
       if (!str) return '';
-      const clean = str.trim();
-      const ddmmyyyy = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      const clean = str.trim().replace(/\s+/g, '');
+      const ddmmyyyy = clean.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
       if (ddmmyyyy) {
         const day = ddmmyyyy[1].padStart(2, '0');
         const month = ddmmyyyy[2].padStart(2, '0');
         const year = ddmmyyyy[3];
         return `${year}-${month}-${day}`;
       }
-      const yyyymmdd = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+      const yyyymmdd = clean.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
       if (yyyymmdd) {
         const year = yyyymmdd[1];
         const month = yyyymmdd[2].padStart(2, '0');
         const day = yyyymmdd[3].padStart(2, '0');
         return `${year}-${month}-${day}`;
+      }
+      if (/^\d{8}$/.test(clean)) {
+        if (clean.startsWith('19') || clean.startsWith('20')) {
+          return `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}`;
+        } else {
+          return `${clean.slice(4, 8)}-${clean.slice(2, 4)}-${clean.slice(0, 2)}`;
+        }
       }
       return clean;
     }
@@ -513,7 +520,20 @@
         const query = (email || '').toLowerCase().trim();
         const inputPwd = (password || '').trim();
 
-        // 1. Try Live Cloud Login
+        // 1. Check Local DB first
+        const db = loadDB();
+        const found = db.users.find(u => (u.email && u.email.toLowerCase() === query) || (u.name && u.name.toLowerCase() === query));
+        if (found) {
+          if (found.password && found.password.trim() !== inputPwd) {
+            throw new Error('Invalid password for this account.');
+          }
+          const { password: _p, ...safe } = found;
+          setUser(safe);
+          localStorage.setItem('college_auth_user', JSON.stringify(safe));
+          return safe;
+        }
+
+        // 2. Try Live Cloud Login
         try {
           const res = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
@@ -531,24 +551,46 @@
           console.warn('Live cloud login fallback to local DB:', err);
         }
 
-        // 2. Fallback to Local DB
-        const db = loadDB();
-        const found = db.users.find(u => (u.email && u.email.toLowerCase() === query) || (u.name && u.name.toLowerCase() === query));
-        if (!found) throw new Error('User not found with this email or username.');
-        if (found.password && found.password.trim() !== inputPwd) throw new Error('Invalid password.');
-        const { password: _p, ...safe } = found;
-        setUser(safe);
-        localStorage.setItem('college_auth_user', JSON.stringify(safe));
-        return safe;
+        throw new Error('User not found with this email or username.');
       };
 
       const loginStudent = async (rollNumber, dob) => {
         const query = (rollNumber || '').trim().toUpperCase();
         const inputDob = (dob || '').trim();
         if (!query) throw new Error('Please enter your Student Roll / Register Number.');
-        if (!inputDob) throw new Error('Please enter your Date of Birth in DD/MM/YYYY numbers.');
+        if (!inputDob) throw new Error('Please enter your Date of Birth (DD/MM/YYYY).');
 
-        // 1. Try Live Cloud student login
+        // 1. Check Local DB first
+        const db = loadDB();
+        const localStudent = (db.users || []).find(u => 
+          (u.role === 'student') && 
+          ((u.rollNumber && u.rollNumber.trim().toUpperCase() === query) ||
+           (u.email && u.email.trim().toUpperCase() === query) ||
+           (u.id && u.id.trim().toUpperCase() === query))
+        );
+
+        if (localStudent) {
+          if (localStudent.dob && localStudent.dob.trim()) {
+            const normStored = normalizeDob(localStudent.dob);
+            const normInput = normalizeDob(inputDob);
+            const rawStoredDigits = (localStudent.dob || '').replace(/\D/g, '');
+            const rawInputDigits = (inputDob || '').replace(/\D/g, '');
+
+            const isMatch = (normStored === normInput) || 
+                            (rawStoredDigits === rawInputDigits) ||
+                            (normStored && normInput && normStored.replace(/-/g, '') === normInput.replace(/-/g, ''));
+
+            if (!isMatch) {
+              throw new Error(`Date of Birth does not match records for Roll No "${query}". Please verify your DOB.`);
+            }
+          }
+          const { password: _p, ...safe } = localStudent;
+          setUser(safe);
+          localStorage.setItem('college_auth_user', JSON.stringify(safe));
+          return safe;
+        }
+
+        // 2. If not found in local DB, try Live Cloud Student Login
         try {
           const res = await fetch(`${API_BASE}/auth/student-login`, {
             method: 'POST',
@@ -562,29 +604,15 @@
             localStorage.setItem('college_auth_token', data.token);
             return data.user;
           } else {
-            const errData = await res.json();
+            const errData = await res.json().catch(() => ({}));
             if (errData.error) throw new Error(errData.error);
           }
         } catch (err) {
-          if (err.message && (err.message.includes('Date of Birth') || err.message.includes('Student with Roll'))) throw err;
+          if (err.message && err.message.includes('Date of Birth')) throw err;
           console.warn('Cloud student login fallback to local DB:', err);
         }
 
-        // 2. Fallback to Local DB
-        const db = loadDB();
-        const found = db.users.find(u => u.role === 'student' && u.rollNumber && u.rollNumber.trim().toUpperCase() === query);
-        if (!found) throw new Error(`No student found with Roll Number "${query}". Please check your Roll Number.`);
-        
-        if (found.dob && found.dob.trim()) {
-          if (normalizeDob(found.dob) !== normalizeDob(inputDob)) {
-            throw new Error(`Date of Birth does not match records for Roll No ${query}.`);
-          }
-        }
-
-        const { password: _p, ...safe } = found;
-        setUser(safe);
-        localStorage.setItem('college_auth_user', JSON.stringify(safe));
-        return safe;
+        throw new Error(`No student found with Roll / Register Number "${query}". Please check your Roll Number.`);
       };
 
       const demoLogin = async (role) => {
