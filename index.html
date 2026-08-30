@@ -442,11 +442,10 @@
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && Array.isArray(parsed.users)) {
-            // Remove all dummy demo students/staff and specific requested removed student
+            // Remove only dummy demo accounts
             parsed.users = parsed.users.filter(u => {
               if (DEMO_USER_IDS.includes(u.id)) return false;
               if (u.email && DEMO_EMAILS.includes(u.email.toLowerCase())) return false;
-              if (u.rollNumber === '24UCSB025' || (u.role === 'student' && u.name && u.name.toLowerCase() === 'karthi')) return false;
               return true;
             });
             // Ensure primary Admin Karthi exists
