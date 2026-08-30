@@ -625,7 +625,9 @@
         if (localStudent) {
           if (localStudent.dob && localStudent.dob.trim()) {
             if (!isDobMatch(localStudent.dob, inputDob)) {
-              throw new Error(`Date of Birth does not match records for Roll No "${query}". Please check your DOB.`);
+              const sParts = parseDobParts(localStudent.dob);
+              const formattedDob = sParts ? `${String(sParts.d).padStart(2, '0')}/${String(sParts.m).padStart(2, '0')}/${sParts.y}` : localStudent.dob;
+              throw new Error(`Date of Birth does not match records for Roll No "${query}". Registered DOB is ${formattedDob}.`);
             }
           }
           const { password: _p, ...safe } = localStudent;
@@ -2420,9 +2422,17 @@
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-700">
                           {u.role === 'student' ? (
-                            <span className="font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                              Sec {u.section || 'A'} · Year {u.year || 1}
-                            </span>
+                            <div>
+                              <span className="font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                                Sec {u.section || 'A'} · Year {u.year || 1}
+                              </span>
+                              <div className="text-[10px] text-purple-700 font-mono font-bold mt-1 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 flex items-center gap-1 w-fit">
+                                <span>🎂</span> {(() => {
+                                  const p = parseDobParts(u.dob);
+                                  return p ? `${String(p.d).padStart(2, '0')}/${String(p.m).padStart(2, '0')}/${p.y}` : (u.dob || '01/01/2004');
+                                })()}
+                              </div>
+                            </div>
                           ) : (
                             <span className="text-slate-400">—</span>
                           )}
