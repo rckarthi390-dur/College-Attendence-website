@@ -749,21 +749,33 @@
 
           // Safe non-destructive merge
           updateDB(d => {
-            // 1. Merge users
+            // 1. Full merge users from cloud — add new, update existing, remove deleted
             if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
               usersRes.value.json().then(cloudUsers => {
                 if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
                   updateDB(current => {
-                    const existingUserIds = new Set(current.users.map(u => u.id));
-                    const existingEmails = new Set(current.users.map(u => (u.email || '').toLowerCase()));
-                    let hasNew = false;
+                    const PROTECTED_IDS = ['admin-karthi'];
+                    const cloudUserIds = new Set(cloudUsers.map(u => u.id));
+                    // Remove users that were deleted from cloud (except protected)
+                    current.users = current.users.filter(u => {
+                      if (PROTECTED_IDS.includes(u.id)) return true;
+                      if (DEMO_USER_IDS.includes(u.id)) return false;
+                      if (u.email && DEMO_EMAILS.includes(u.email.toLowerCase())) return false;
+                      // Remove if cloud doesn't have this user (it was deleted elsewhere)
+                      if (!u.id.startsWith('usr-') && !cloudUserIds.has(u.id)) return false;
+                      if (u.id.startsWith('usr-') && !cloudUserIds.has(u.id)) return false;
+                      return true;
+                    });
+                    // Add or update cloud users
                     cloudUsers.forEach(cu => {
-                      if (!DEMO_USER_IDS.includes(cu.id) && !DEMO_EMAILS.includes((cu.email || '').toLowerCase())) {
-                        if (!existingUserIds.has(cu.id) && (!cu.email || !existingEmails.has(cu.email.toLowerCase()))) {
-                          current.users.push(cu);
-                          existingUserIds.add(cu.id);
-                          hasNew = true;
-                        }
+                      if (DEMO_USER_IDS.includes(cu.id)) return;
+                      if (cu.email && DEMO_EMAILS.includes(cu.email.toLowerCase())) return;
+                      const idx = current.users.findIndex(u => u.id === cu.id);
+                      if (idx >= 0) {
+                        // Update existing - keep local password if cloud password is hashed
+                        current.users[idx] = { ...current.users[idx], ...cu };
+                      } else {
+                        current.users.push(cu);
                       }
                     });
                     return current;
