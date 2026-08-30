@@ -193,8 +193,14 @@ export default function UserManagement() {
                     <td className="px-5 py-3.5 text-sm font-mono text-slate-600">
                       {u.rollNumber || u.employeeId || '—'} {u.section ? `(Sec ${u.section})` : ''}
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-slate-500">
-                      {u.phone || '—'}
+                    <td className="px-5 py-3.5 text-sm text-slate-600">
+                      {u.phone ? (
+                        <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1.5">
+                          <span>📞</span> {u.phone}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic text-xs">No phone</span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5 text-right whitespace-nowrap space-x-2">
                       <button

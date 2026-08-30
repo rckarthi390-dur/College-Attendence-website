@@ -1886,6 +1886,7 @@
       const [newU, setNewU] = useState({
         name: '',
         email: '',
+        phone: '',
         role: 'student',
         rollNumber: '',
         dob: '2004-01-01',
@@ -1909,6 +1910,7 @@
         setNewU({
           name: '',
           email: '',
+          phone: '',
           role: newU.role,
           rollNumber: '',
           dob: '2004-01-01',
@@ -2257,6 +2259,18 @@
                     </div>
                   )}
 
+                  {/* Phone Number */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Phone Number</label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 9876543210"
+                      value={newU.phone || ''}
+                      onChange={e => setNewU({...newU, phone: e.target.value})}
+                      className="input-field bg-white"
+                    />
+                  </div>
+
                   {/* Department (For Students & Faculty only - Hidden for Administrator) */}
                   {newU.role !== 'admin' && (
                     <div>
@@ -2292,7 +2306,7 @@
                       <th className="px-4 py-2.5 text-left table-header">Role</th>
                       <th className="px-4 py-2.5 text-left table-header">Class & Year</th>
                       <th className="px-4 py-2.5 text-left table-header">Department</th>
-                      <th className="px-4 py-2.5 text-left table-header">Email</th>
+                      <th className="px-4 py-2.5 text-left table-header">Contact (Email & Phone)</th>
                       <th className="px-4 py-2.5 text-right table-header">Action</th>
                     </tr>
                   </thead>
@@ -2338,7 +2352,16 @@
                         <td className="px-4 py-3 text-xs text-slate-600">
                           {u.role === 'admin' ? <span className="text-slate-400 font-medium">—</span> : u.department}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 font-mono">{u.email}</td>
+                        <td className="px-4 py-3 text-xs">
+                          <div className="font-mono text-slate-700 font-medium">{u.email}</div>
+                          {u.phone ? (
+                            <div className="text-[11px] font-mono text-indigo-700 font-bold flex items-center gap-1.5 mt-1 bg-indigo-50/90 px-2 py-0.5 rounded-md border border-indigo-200/80 w-fit">
+                              <span>📞</span> {u.phone}
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-slate-400 italic mt-0.5">📞 No phone added</div>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5 flex-wrap">
                             <button
