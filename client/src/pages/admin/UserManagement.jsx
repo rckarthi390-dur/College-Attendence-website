@@ -55,6 +55,7 @@ export default function UserManagement() {
       role: 'student',
       department: departments[0]?.name || 'Computer Science',
       rollNumber: '',
+      dob: '2004-01-01',
       employeeId: '',
       section: 'A',
       year: 3,
@@ -72,6 +73,7 @@ export default function UserManagement() {
       role: user.role || 'student',
       department: user.department || '',
       rollNumber: user.rollNumber || '',
+      dob: user.dob || '2004-01-01',
       employeeId: user.employeeId || '',
       section: user.section || 'A',
       year: user.year || 3,
@@ -274,14 +276,25 @@ export default function UserManagement() {
           </div>
 
           {formData.role === 'student' && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Roll Number</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Roll Number *</label>
                 <input
                   type="text"
                   value={formData.rollNumber}
-                  onChange={e => setFormData({ ...formData, rollNumber: e.target.value })}
+                  onChange={e => setFormData({ ...formData, rollNumber: e.target.value.toUpperCase() })}
                   placeholder="e.g. CS21011"
+                  required
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Date of Birth (DOB) *</label>
+                <input
+                  type="date"
+                  value={formData.dob || '2004-01-01'}
+                  onChange={e => setFormData({ ...formData, dob: e.target.value })}
+                  required
                   className="input-field"
                 />
               </div>
@@ -302,6 +315,8 @@ export default function UserManagement() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Year</label>
                 <input
                   type="number"
+                  min="1"
+                  max="5"
                   value={formData.year}
                   onChange={e => setFormData({ ...formData, year: Number(e.target.value) })}
                   className="input-field"

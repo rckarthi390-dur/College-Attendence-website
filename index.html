@@ -1920,6 +1920,24 @@
         });
       };
 
+      const [editingUser, setEditingUser] = useState(null);
+
+      const handleUpdateUser = (e) => {
+        e.preventDefault();
+        if (!editingUser) return;
+        const updateData = { ...editingUser };
+        if (updateData.role === 'student') {
+          updateData.year = Number(updateData.year) || 1;
+        }
+        if (!updateData.password || !updateData.password.trim()) {
+          delete updateData.password;
+        }
+        updateUser(editingUser.id, updateData);
+        setUserAddedNotice(`User "${updateData.name}" updated successfully!`);
+        setTimeout(() => setUserAddedNotice(''), 4000);
+        setEditingUser(null);
+      };
+
       const [courseAddedNotice, setCourseAddedNotice] = useState('');
       const [deptAddedNotice, setDeptAddedNotice] = useState('');
       const [settingsSavedNotice, setSettingsSavedNotice] = useState('');
@@ -2322,7 +2340,19 @@
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500 font-mono">{u.email}</td>
                         <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => setEditingUser({
+                                ...u,
+                                dob: u.dob || '2004-01-01',
+                                password: ''
+                              })}
+                              title="Edit User Details"
+                              className="text-xs text-blue-600 font-bold hover:text-blue-800 transition-colors cursor-pointer px-2.5 py-1 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 flex items-center gap-1"
+                            >
+                              ✏️ Edit
+                            </button>
                             {(u.role === 'faculty' || u.role === 'admin') && (
                               <button
                                 type="button"
@@ -2339,10 +2369,10 @@
                                 title="Change/Reset Login Password"
                                 className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold px-2 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition-colors cursor-pointer"
                               >
-                                🔑 Password
+                                🔑 Pass
                               </button>
                             )}
-                            <button onClick={() => deleteUser(u.id)} className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer">
+                            <button onClick={() => deleteUser(u.id)} className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer px-2 py-1 bg-red-50 hover:bg-red-100 rounded-lg border border-red-100">
                               🗑️ Remove
                             </button>
                           </div>
@@ -2352,6 +2382,182 @@
                   </tbody>
                 </table></div>
               </div>
+
+              {/* Edit User Modal Dialog */}
+              {editingUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setEditingUser(null)}>
+                  <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+                      <div>
+                        <h3 className="text-base sm:text-lg font-bold text-slate-800">✏️ Edit User: {editingUser.name}</h3>
+                        <p className="text-xs text-slate-500">Update personal, academic, or institutional login details</p>
+                      </div>
+                      <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 text-sm font-bold">✕</button>
+                    </div>
+
+                    <form onSubmit={handleUpdateUser} className="overflow-y-auto p-5 sm:p-6 space-y-4">
+                      {/* Role Switcher */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-600">Role:</span>
+                        <div className="inline-flex gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                          {[
+                            { id: 'student', label: '🎓 Student' },
+                            { id: 'faculty', label: '👨‍🏫 Faculty / Staff' },
+                            { id: 'admin', label: '🛡️ Administrator' }
+                          ].map(r => (
+                            <button
+                              type="button"
+                              key={r.id}
+                              onClick={() => setEditingUser({ ...editingUser, role: r.id })}
+                              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${editingUser.role === r.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                            >
+                              {r.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Full Name *</label>
+                          <input
+                            type="text"
+                            value={editingUser.name}
+                            onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
+                            required
+                            className="input-field"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Email Address *</label>
+                          <input
+                            type="email"
+                            value={editingUser.email}
+                            onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
+                            required
+                            className="input-field"
+                          />
+                        </div>
+                      </div>
+
+                      {editingUser.role !== 'admin' && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Department *</label>
+                          <select
+                            value={editingUser.department}
+                            onChange={e => setEditingUser({ ...editingUser, department: e.target.value })}
+                            className="input-field"
+                          >
+                            {deptList.map(d => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {editingUser.role === 'student' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100">
+                          <div>
+                            <label className="block text-xs font-bold text-indigo-900 mb-1">Roll Number *</label>
+                            <input
+                              type="text"
+                              value={editingUser.rollNumber || ''}
+                              onChange={e => setEditingUser({ ...editingUser, rollNumber: e.target.value.toUpperCase() })}
+                              required
+                              className="input-field bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-indigo-900 mb-1">Date of Birth (DOB) *</label>
+                            <input
+                              type="date"
+                              value={editingUser.dob || '2004-01-01'}
+                              onChange={e => setEditingUser({ ...editingUser, dob: e.target.value })}
+                              required
+                              className="input-field bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-indigo-900 mb-1">Section</label>
+                            <select
+                              value={editingUser.section || 'A'}
+                              onChange={e => setEditingUser({ ...editingUser, section: e.target.value })}
+                              className="input-field bg-white"
+                            >
+                              <option value="A">Section A</option>
+                              <option value="B">Section B</option>
+                              <option value="C">Section C</option>
+                              <option value="D">Section D</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-indigo-900 mb-1">Year</label>
+                            <select
+                              value={editingUser.year || 1}
+                              onChange={e => setEditingUser({ ...editingUser, year: Number(e.target.value) })}
+                              className="input-field bg-white"
+                            >
+                              <option value={1}>1st Year</option>
+                              <option value={2}>2nd Year</option>
+                              <option value={3}>3rd Year</option>
+                              <option value={4}>4th Year</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {editingUser.role === 'faculty' && (
+                        <div className="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100">
+                          <label className="block text-xs font-bold text-emerald-900 mb-1">Employee ID *</label>
+                          <input
+                            type="text"
+                            value={editingUser.employeeId || ''}
+                            onChange={e => setEditingUser({ ...editingUser, employeeId: e.target.value.toUpperCase() })}
+                            required
+                            className="input-field bg-white"
+                          />
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
+                          <input
+                            type="text"
+                            value={editingUser.phone || ''}
+                            onChange={e => setEditingUser({ ...editingUser, phone: e.target.value })}
+                            placeholder="e.g. 9876543210"
+                            className="input-field"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            New Password <span className="text-slate-400 font-normal">(leave blank to keep current)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={editingUser.password || ''}
+                            onChange={e => setEditingUser({ ...editingUser, password: e.target.value })}
+                            placeholder="Enter new password if changing"
+                            className="input-field font-mono text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button type="button" onClick={() => setEditingUser(null)} className="btn-secondary text-xs px-4 py-2">
+                          Cancel
+                        </button>
+                        <button type="submit" className="btn-primary text-xs px-6 py-2">
+                          💾 Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
