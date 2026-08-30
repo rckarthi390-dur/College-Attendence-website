@@ -222,8 +222,8 @@ export default function UserManagement() {
         onClose={() => setModalOpen(false)}
         title={editingUser ? `Edit User: ${editingUser.name}` : 'Add New User'}
       >
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
               <input
@@ -246,7 +246,7 @@ export default function UserManagement() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Role *</label>
               <select
@@ -274,7 +274,7 @@ export default function UserManagement() {
           </div>
 
           {formData.role === 'student' && (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Roll Number</label>
                 <input

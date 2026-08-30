@@ -244,7 +244,7 @@ export default function CourseManagement() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Department *</label>
               <select
@@ -289,7 +289,7 @@ export default function CourseManagement() {
         onClose={() => setDeptModalOpen(false)}
         title="Add Department"
       >
-        <form onSubmit={handleDeptSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleDeptSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Department Name *</label>
             <input
@@ -302,7 +302,7 @@ export default function CourseManagement() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Department Code *</label>
               <input

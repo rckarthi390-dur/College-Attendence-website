@@ -222,87 +222,152 @@
     }
 
     /* ── Mobile Responsive Styles ── */
-    .mobile-menu-btn { display: none; }
+    .mobile-top-bar { display: none; }
     .sidebar-overlay { display: none; }
 
+    /* Universal responsive tab bar */
+    .tab-nav {
+      display: flex !important;
+      align-items: center;
+      gap: 0.5rem !important;
+      overflow-x: auto !important;
+      white-space: nowrap !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+      padding-bottom: 2px !important;
+      width: 100% !important;
+    }
+    .tab-nav::-webkit-scrollbar { display: none !important; }
+    .tab-nav button {
+      flex-shrink: 0 !important;
+      transition: all 0.2s ease !important;
+    }
+
     @media (max-width: 768px) {
+      .app-layout {
+        flex-direction: column !important;
+        height: 100vh !important;
+        overflow: hidden !important;
+      }
+      .mobile-top-bar {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: #0f172a;
+        color: #ffffff;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 30;
+        flex-shrink: 0;
+      }
       .app-sidebar {
         position: fixed !important;
-        left: -280px;
+        left: -320px;
         top: 0;
         bottom: 0;
         z-index: 50;
-        width: 260px !important;
-        transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        width: 280px !important;
+        max-width: 85vw !important;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), left 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
       }
-      .app-sidebar.open { left: 0; }
+      .app-sidebar.open {
+        left: 0 !important;
+        transform: translateX(0) !important;
+      }
       .sidebar-overlay {
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.6);
+        background: rgba(15, 23, 42, 0.7);
         backdrop-filter: blur(4px);
         z-index: 40;
-        transition: all 0.3s ease;
+        transition: opacity 0.3s ease;
       }
       .sidebar-overlay.open { display: block; }
 
-      .mobile-menu-btn {
+      .app-main {
+        padding-top: 0 !important;
+        flex: 1 1 0% !important;
+        overflow-y: auto !important;
+        height: auto !important;
+      }
+      .app-main > div {
+        padding: 0.875rem !important;
+      }
+
+      .dash-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.875rem !important;
+        margin-bottom: 1rem !important;
+      }
+      .dash-header > div:first-child {
+        width: 100%;
+      }
+
+      .tab-nav button {
+        font-size: 0.75rem !important;
+        padding: 0.5rem 0.85rem !important;
+        border-radius: 0.75rem !important;
+      }
+
+      .grid-cols-4, .grid-cols-5, .grid-cols-3, .grid-cols-2 {
+        grid-template-columns: 1fr !important;
+      }
+      .stat-mini-grid.grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+      }
+      .grid.md\\:grid-cols-2, .grid.md\\:grid-cols-3, .grid.lg\\:grid-cols-3 {
+        grid-template-columns: 1fr !important;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border-radius: 0.75rem;
+      }
+      .table-wrap table {
+        min-width: 540px;
+      }
+
+      .student-banner {
+        flex-direction: column !important;
+        text-align: center;
+        gap: 1rem !important;
+        padding: 1.25rem !important;
+      }
+
+      form.grid {
+        grid-template-columns: 1fr !important;
+      }
+      form .col-span-4, form .col-span-5 {
+        grid-column: span 1 !important;
+      }
+
+      .leave-card {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
+      }
+      .leave-card > div:last-child {
+        width: 100%;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 42px;
-        height: 42px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.8);
-        font-size: 1.25rem;
-        cursor: pointer;
-        position: fixed;
-        top: 12px;
-        left: 12px;
-        z-index: 35;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 0.5rem;
       }
-      .mobile-menu-btn:hover {
-        transform: scale(1.05);
-      }
-
-      .app-main { padding-top: 60px !important; }
-      .app-main > div { padding: 1rem !important; }
-
-      .tab-nav { flex-wrap: wrap !important; gap: 0.375rem !important; }
-      .tab-nav button { font-size: 0.65rem !important; padding: 0.375rem 0.625rem !important; white-space: nowrap; }
-
-      .dash-header { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
-
-      .grid-cols-4, .grid-cols-5, .grid-cols-3 { grid-template-columns: 1fr !important; }
-      .stat-mini-grid.grid-cols-4 { grid-template-columns: repeat(4, 1fr) !important; }
-      .grid.md\\:grid-cols-2 { grid-template-columns: 1fr !important; }
-      .grid.md\\:grid-cols-3 { grid-template-columns: 1fr !important; }
-
-      .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -0.5rem; padding: 0 0.5rem; }
-      .table-wrap table { min-width: 600px; }
-
-      .student-banner { flex-direction: column !important; text-align: center; gap: 1rem !important; padding: 1.25rem !important; }
-
-      form.grid { grid-template-columns: 1fr !important; }
-      form .col-span-4 { grid-column: span 1 !important; }
-
-      .leave-card { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
-      .leave-card > div:last-child { width: 100%; display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 0.5rem; }
-
-      form.grid-cols-5 { grid-template-columns: 1fr !important; }
-      .grid-cols-2 { grid-template-columns: 1fr !important; }
-      .grid-cols-3 { grid-template-columns: 1fr !important; }
     }
 
     @media (min-width: 769px) and (max-width: 1024px) {
       .grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
       .grid-cols-5 { grid-template-columns: repeat(3, 1fr) !important; }
-      .tab-nav { flex-wrap: wrap !important; }
+      .tab-nav { flex-wrap: nowrap !important; }
     }
   </style>
 </head>
@@ -2862,9 +2927,38 @@
       if (!user) return <LoginPage />;
 
       return (
-        <div className="h-screen w-full bg-slate-50 flex overflow-hidden">
-          {/* Mobile Hamburger Button */}
-          <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
+        <div className="app-layout h-screen w-full bg-slate-50 flex overflow-hidden">
+          {/* Mobile Top Navigation Bar */}
+          <header className="mobile-top-bar">
+            <div className="flex items-center gap-3">
+              <button
+                className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white font-bold text-lg transition-all"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Open Navigation Menu"
+              >
+                ☰
+              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎓</span>
+                <div>
+                  <h2 className="font-extrabold text-xs leading-tight text-white">G.T.N. Arts College</h2>
+                  <p className="text-[10px] text-indigo-300">Attendance Portal</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-white/10 text-white rounded-lg">
+                {user.role}
+              </span>
+              <button
+                onClick={() => logout()}
+                title="Logout"
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-white transition-all"
+              >
+                🚪
+              </button>
+            </div>
+          </header>
 
           {/* Sidebar Overlay (mobile) */}
           <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
@@ -2872,12 +2966,21 @@
           {/* Sidebar */}
           <div className={`app-sidebar w-64 h-screen flex-shrink-0 bg-slate-900 text-white p-5 flex flex-col justify-between overflow-y-auto ${sidebarOpen ? 'open' : ''}`}>
             <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-xl font-bold shadow-lg shadow-indigo-600/30">🎓</div>
-                <div>
-                  <h2 className="font-extrabold text-sm leading-tight text-white">G.T.N. Arts College</h2>
-                  <p className="text-[10px] text-indigo-300">Attendance Portal</p>
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-xl font-bold shadow-lg shadow-indigo-600/30">🎓</div>
+                  <div>
+                    <h2 className="font-extrabold text-sm leading-tight text-white">G.T.N. Arts College</h2>
+                    <p className="text-[10px] text-indigo-300">Attendance Portal</p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="md:hidden text-white/70 hover:text-white p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold"
+                  aria-label="Close Sidebar"
+                >
+                  ✕
+                </button>
               </div>
 
               <div className="p-3 bg-white/5 rounded-xl border border-white/10 mb-6">

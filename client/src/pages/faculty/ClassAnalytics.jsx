@@ -71,7 +71,7 @@ export default function ClassAnalytics() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-5">
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <SelectField label="Department" value={dept} onChange={v => { setDept(v); setCourseId(''); }}
             options={departments.map(d => ({ value: d.name, label: d.name }))} placeholder="All Departments" />
           <SelectField label="Course" value={courseId} onChange={setCourseId}
@@ -82,7 +82,7 @@ export default function ClassAnalytics() {
       </div>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard label="Total Students" value={analytics.students?.length || 0} icon="👥" color="blue" />
         <StatCard label="Low Attendance" value={analytics.lowAttendance?.length || 0} icon="⚠️" color="red" sub={`< ${analytics.threshold}%`} />
         <StatCard label="Total Classes" value={overallStats.totalSessions} icon="📅" color="teal" />
