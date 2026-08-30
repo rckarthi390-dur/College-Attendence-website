@@ -476,6 +476,59 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
     }
 
+    function parseDobParts(str) {
+      if (!str) return null;
+      const clean = str.trim();
+      
+      // 1. Check YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
+      let m = clean.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+      if (m) {
+        return { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) };
+      }
+
+      // 2. Check DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+      m = clean.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+      if (m) {
+        return { y: Number(m[3]), m: Number(m[2]), d: Number(m[1]) };
+      }
+
+      // 3. Digits only
+      const digits = clean.replace(/\D/g, '');
+      if (digits.length === 8) {
+        if (digits.startsWith('19') || digits.startsWith('20')) {
+          return { y: Number(digits.slice(0, 4)), m: Number(digits.slice(4, 6)), d: Number(digits.slice(6, 8)) };
+        } else {
+          return { y: Number(digits.slice(4, 8)), m: Number(digits.slice(2, 4)), d: Number(digits.slice(0, 2)) };
+        }
+      } else if (digits.length === 6 || digits.length === 7) {
+        const year = Number(digits.slice(-4));
+        const rem = digits.slice(0, -4);
+        if (rem.length === 2) {
+          return { y: year, m: Number(rem[1]), d: Number(rem[0]) };
+        } else if (rem.length === 3) {
+          const d1 = Number(rem.slice(0, 2)), m1 = Number(rem.slice(2));
+          const d2 = Number(rem[0]), m2 = Number(rem.slice(1));
+          if (d1 <= 31 && m1 <= 12) return { y: year, m: m1, d: d1 };
+          if (d2 <= 31 && m2 <= 12) return { y: year, m: m2, d: d2 };
+        }
+      }
+
+      return null;
+    }
+
+    function isDobMatch(storedDob, inputDob) {
+      if (!storedDob || !inputDob) return true;
+      const s = parseDobParts(storedDob);
+      const i = parseDobParts(inputDob);
+      if (s && i) {
+        return s.y === i.y && s.m === i.m && s.d === i.d;
+      }
+      const rawS = (storedDob || '').replace(/\D/g, '');
+      const rawI = (inputDob || '').replace(/\D/g, '');
+      if (rawS && rawI && rawS === rawI) return true;
+      return normalizeDob(storedDob) === normalizeDob(inputDob);
+    }
+
     function normalizeDob(str) {
       if (!str) return '';
       const clean = str.trim().replace(/\s+/g, '');
@@ -565,22 +618,14 @@
           (u.role === 'student') && 
           ((u.rollNumber && u.rollNumber.trim().toUpperCase() === query) ||
            (u.email && u.email.trim().toUpperCase() === query) ||
+           (u.name && u.name.trim().toUpperCase() === query) ||
            (u.id && u.id.trim().toUpperCase() === query))
         );
 
         if (localStudent) {
           if (localStudent.dob && localStudent.dob.trim()) {
-            const normStored = normalizeDob(localStudent.dob);
-            const normInput = normalizeDob(inputDob);
-            const rawStoredDigits = (localStudent.dob || '').replace(/\D/g, '');
-            const rawInputDigits = (inputDob || '').replace(/\D/g, '');
-
-            const isMatch = (normStored === normInput) || 
-                            (rawStoredDigits === rawInputDigits) ||
-                            (normStored && normInput && normStored.replace(/-/g, '') === normInput.replace(/-/g, ''));
-
-            if (!isMatch) {
-              throw new Error(`Date of Birth does not match records for Roll No "${query}". Please verify your DOB.`);
+            if (!isDobMatch(localStudent.dob, inputDob)) {
+              throw new Error(`Date of Birth does not match records for Roll No "${query}". Please check your DOB.`);
             }
           }
           const { password: _p, ...safe } = localStudent;
@@ -1203,14 +1248,7 @@
       }, []);
 
       const handleDobChange = (e) => {
-        let val = e.target.value.replace(/\D/g, ''); // digits only
-        if (val.length > 8) val = val.slice(0, 8);
-        if (val.length > 4) {
-          val = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4)}`;
-        } else if (val.length > 2) {
-          val = `${val.slice(0, 2)}/${val.slice(2)}`;
-        }
-        setDob(val);
+        setDob(e.target.value);
         setError('');
       };
 
@@ -1348,31 +1386,44 @@
 
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center justify-between">
-                        <span>Date of Birth (DD/MM/YYYY) *</span>
-                        <span className="text-[10px] text-purple-300 font-mono font-bold">DD/MM/YYYY</span>
+                        <span>Date of Birth (DOB) *</span>
+                        <span className="text-[10px] text-purple-300 font-mono font-bold">DD/MM/YYYY or Pick 📅</span>
                       </label>
-                      <div className="relative">
+                      <div className="relative flex items-center">
                         <input
                           type="text"
-                          inputMode="numeric"
-                          pattern="[0-9/]*"
-                          maxLength="10"
                           value={dob}
                           onChange={handleDobChange}
                           required
-                          placeholder="DD/MM/YYYY (e.g. 15/05/2004)"
+                          placeholder="DD/MM/YYYY (e.g. 01/01/2004)"
                           autoComplete="off"
-                          className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-mono font-bold text-sm sm:text-base rounded-xl sm:rounded-2xl px-3.5 sm:px-4 py-3 outline-none tracking-wider sm:tracking-widest placeholder:text-slate-500 placeholder:tracking-normal transition-all"
+                          className="w-full bg-white/10 border-2 border-purple-500/40 focus:border-purple-400 text-white font-mono font-bold text-sm sm:text-base rounded-xl sm:rounded-2xl px-3.5 sm:px-4 py-3 outline-none tracking-wider placeholder:text-slate-500 placeholder:tracking-normal transition-all pr-16"
                         />
-                        {dob && (
-                          <button
-                            type="button"
-                            onClick={() => setDob('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-white/10 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer"
-                          >
-                            ✕
-                          </button>
-                        )}
+                        <div className="absolute right-2.5 flex items-center gap-1.5">
+                          <input
+                            type="date"
+                            onChange={e => {
+                              if (e.target.value) {
+                                const parts = e.target.value.split('-');
+                                if (parts.length === 3) {
+                                  setDob(`${parts[2]}/${parts[1]}/${parts[0]}`);
+                                  setError('');
+                                }
+                              }
+                            }}
+                            title="Pick date from calendar"
+                            className="w-6 h-6 opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-0 filter invert"
+                          />
+                          {dob && (
+                            <button
+                              type="button"
+                              onClick={() => setDob('')}
+                              className="text-slate-400 hover:text-white text-xs bg-white/10 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
 

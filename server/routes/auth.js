@@ -138,31 +138,57 @@ router.post('/demo-login', async (req, res) => {
   res.json({ token, user: payload });
 });
 
-function normalizeDob(str) {
-  if (!str) return '';
-  const clean = str.trim().replace(/\s+/g, '');
-  const ddmmyyyy = clean.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
-  if (ddmmyyyy) {
-    const day = ddmmyyyy[1].padStart(2, '0');
-    const month = ddmmyyyy[2].padStart(2, '0');
-    const year = ddmmyyyy[3];
-    return `${year}-${month}-${day}`;
+function parseDobParts(str) {
+  if (!str) return null;
+  const clean = str.trim();
+  
+  // 1. Check YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
+  let m = clean.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+  if (m) {
+    return { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) };
   }
-  const yyyymmdd = clean.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
-  if (yyyymmdd) {
-    const year = yyyymmdd[1];
-    const month = yyyymmdd[2].padStart(2, '0');
-    const day = yyyymmdd[3].padStart(2, '0');
-    return `${year}-${month}-${day}`;
+
+  // 2. Check DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  m = clean.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (m) {
+    return { y: Number(m[3]), m: Number(m[2]), d: Number(m[1]) };
   }
-  if (/^\d{8}$/.test(clean)) {
-    if (clean.startsWith('19') || clean.startsWith('20')) {
-      return `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}`;
+
+  // 3. Digits only
+  const digits = clean.replace(/\D/g, '');
+  if (digits.length === 8) {
+    if (digits.startsWith('19') || digits.startsWith('20')) {
+      return { y: Number(digits.slice(0, 4)), m: Number(digits.slice(4, 6)), d: Number(digits.slice(6, 8)) };
     } else {
-      return `${clean.slice(4, 8)}-${clean.slice(2, 4)}-${clean.slice(0, 2)}`;
+      return { y: Number(digits.slice(4, 8)), m: Number(digits.slice(2, 4)), d: Number(digits.slice(0, 2)) };
+    }
+  } else if (digits.length === 6 || digits.length === 7) {
+    const year = Number(digits.slice(-4));
+    const rem = digits.slice(0, -4);
+    if (rem.length === 2) {
+      return { y: year, m: Number(rem[1]), d: Number(rem[0]) };
+    } else if (rem.length === 3) {
+      const d1 = Number(rem.slice(0, 2)), m1 = Number(rem.slice(2));
+      const d2 = Number(rem[0]), m2 = Number(rem.slice(1));
+      if (d1 <= 31 && m1 <= 12) return { y: year, m: m1, d: d1 };
+      if (d2 <= 31 && m2 <= 12) return { y: year, m: m2, d: d2 };
     }
   }
-  return clean;
+
+  return null;
+}
+
+function isDobMatch(storedDob, inputDob) {
+  if (!storedDob || !inputDob) return true;
+  const s = parseDobParts(storedDob);
+  const i = parseDobParts(inputDob);
+  if (s && i) {
+    return s.y === i.y && s.m === i.m && s.d === i.d;
+  }
+  const rawS = storedDob.replace(/\D/g, '');
+  const rawI = inputDob.replace(/\D/g, '');
+  if (rawS && rawI && rawS === rawI) return true;
+  return normalizeDob(storedDob) === normalizeDob(inputDob);
 }
 
 // POST /api/auth/student-login (student logs in by rollNumber & date of birth)
@@ -183,16 +209,7 @@ router.post('/student-login', (req, res) => {
   if (!student) return res.status(404).json({ error: `Student with Roll / Register Number "${query}" not found.` });
 
   if (student.dob && student.dob.trim()) {
-    const normStored = normalizeDob(student.dob);
-    const normInput = normalizeDob(inputDob);
-    const rawStoredDigits = (student.dob || '').replace(/\D/g, '');
-    const rawInputDigits = (inputDob || '').replace(/\D/g, '');
-
-    const isMatch = (normStored === normInput) || 
-                    (rawStoredDigits === rawInputDigits) ||
-                    (normStored && normInput && normStored.replace(/-/g, '') === normInput.replace(/-/g, ''));
-
-    if (!isMatch) {
+    if (!isDobMatch(student.dob, inputDob)) {
       return res.status(401).json({ error: `Date of Birth does not match records for Roll No "${query}".` });
     }
   }
