@@ -1874,7 +1874,7 @@
     // Admin View
     function AdminView() {
       const { user } = useAuth();
-      const { getUsers, addUser, deleteUser, getCourses, addCourse, deleteCourse, getDepartments, addDepartment, updateDepartment, deleteDepartment, getAuditLog, getSettings, updateSettings, getStudentAttendanceSummary } = useApp();
+      const { getUsers, addUser, updateUser, deleteUser, getCourses, addCourse, deleteCourse, getDepartments, addDepartment, updateDepartment, deleteDepartment, getAuditLog, getSettings, updateSettings, getStudentAttendanceSummary } = useApp();
       const [tab, setTab] = useState('users');
 
       const users = getUsers();
