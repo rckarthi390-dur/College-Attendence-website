@@ -1549,7 +1549,7 @@
       const courses = getCourses(dept);
       const [courseId, setCourseId] = useState(courses[0]?.id || 'CS101');
       const [section, setSection] = useState('A');
-      const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+      const [date, setDate] = useState((() => { const t = new Date(); return `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')}/${t.getFullYear()}`; })());
 
       const [roster, setRoster] = useState([]);
       const [savedNotice, setSavedNotice] = useState('');
@@ -1631,7 +1631,7 @@
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Date</label>
-                  <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input-field" />
+                  <input type="date" onChange={e => { if (e.target.value) { const [y,m,d] = e.target.value.split('-'); setDate(`${d}/${m}/${y}`); } }} title="Pick attendance date" className="input-field" />
                 </div>
               </div>
 
@@ -1687,7 +1687,7 @@
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Select Past Date</label>
-                  <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input-field" />
+                  <input type="date" onChange={e => { if (e.target.value) { const [y,m,d] = e.target.value.split('-'); setDate(`${d}/${m}/${y}`); } }} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Course</label>
@@ -1819,9 +1819,7 @@
 
       const handleApply = (e) => {
         e.preventDefault();
-        const isoFrom = convertToIso(fromDate);
-        const isoTo = convertToIso(toDate);
-        addLeave(user.id, { type: leaveType, fromDate: isoFrom, toDate: isoTo, reason });
+        addLeave(user.id, { type: leaveType, fromDate, toDate, reason });
         setFromDate(''); setToDate(''); setReason('');
         setSubmittedNotice('Application submitted successfully! It is now pending faculty review.');
         setTimeout(() => setSubmittedNotice(''), 4000);
@@ -2044,7 +2042,7 @@
           userData.year = Number(userData.year) || 1;
           const p = parseDobParts(userData.dob);
           if (p) {
-            userData.dob = `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
+            userData.dob = `${String(p.d).padStart(2,'0')}/${String(p.m).padStart(2,'0')}/${p.y}`;
           }
         }
         addUser(userData);
@@ -2075,7 +2073,7 @@
           updateData.year = Number(updateData.year) || 1;
           const p = parseDobParts(updateData.dob);
           if (p) {
-            updateData.dob = `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
+            updateData.dob = `${String(p.d).padStart(2,'0')}/${String(p.m).padStart(2,'0')}/${p.y}`;
           }
         }
         if (!updateData.password || !updateData.password.trim()) {
