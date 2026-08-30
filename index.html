@@ -2741,9 +2741,9 @@
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Academic Year */}
-                  <div className="sm:col-span-2 lg:col-span-2 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200">
+                  <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200">
                     <label className="block text-xs font-bold text-indigo-900 mb-1.5 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">📅 Academic Year *</span>
                       <span className="text-[10px] text-indigo-600 font-bold">Active: {settings.academicYear || '2024-25'}</span>
@@ -2782,40 +2782,27 @@
                     </div>
                   </div>
 
-                  {/* Institution Name */}
-                  <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200">
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">🏛️ Institution Name *</label>
-                    <input
-                      type="text"
-                      value={settings.institutionName || 'G.T.N. Arts College'}
-                      onChange={e => {
-                        updateSettings({ institutionName: e.target.value });
-                        setSettingsSavedNotice('Institution name updated');
-                        setTimeout(() => setSettingsSavedNotice(''), 3000);
-                      }}
-                      placeholder="e.g. G.T.N. Arts College"
-                      className="input-field bg-white text-sm"
-                    />
-                  </div>
-
                   {/* Attendance Threshold */}
-                  <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200">
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                      <span>🎯 Attendance Threshold (%)</span>
-                      <span className="text-[10px] text-slate-500">{settings.attendanceThreshold}% min</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={settings.attendanceThreshold || 75}
-                      onChange={e => {
-                        updateSettings({ attendanceThreshold: Number(e.target.value) });
-                        setSettingsSavedNotice(`Threshold set to ${e.target.value}%`);
-                        setTimeout(() => setSettingsSavedNotice(''), 3000);
-                      }}
-                      className="input-field bg-white font-bold text-sm"
-                    />
+                  <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                        <span>🎯 Attendance Threshold (%)</span>
+                        <span className="text-[10px] text-slate-500">{settings.attendanceThreshold}% min</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={settings.attendanceThreshold || 75}
+                        onChange={e => {
+                          updateSettings({ attendanceThreshold: Number(e.target.value) });
+                          setSettingsSavedNotice(`Threshold set to ${e.target.value}%`);
+                          setTimeout(() => setSettingsSavedNotice(''), 3000);
+                        }}
+                        className="input-field bg-white font-bold text-sm mb-2"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500">Students with overall attendance below this threshold will be flagged as Low Attendance.</p>
                   </div>
                 </div>
               </div>

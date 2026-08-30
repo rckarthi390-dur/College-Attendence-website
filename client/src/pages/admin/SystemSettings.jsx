@@ -97,18 +97,7 @@ export default function SystemSettings() {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 lg:col-span-2">
           <h2 className="text-base font-bold text-slate-800 mb-4">⚙️ Policy & Threshold Settings</h2>
           <form onSubmit={handleSave} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Institution Name</label>
-              <input
-                type="text"
-                value={institutionName}
-                onChange={e => setInstitutionName(e.target.value)}
-                required
-                className="input-field"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Academic Year</label>
                 <input
