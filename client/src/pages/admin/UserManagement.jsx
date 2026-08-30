@@ -354,18 +354,20 @@ export default function UserManagement() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Password {editingUser ? '(leave blank to keep current)' : '*'}
-            </label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={e => setFormData({ ...formData, password: e.target.value })}
-              className="input-field"
-              placeholder="••••••••"
-            />
-          </div>
+          {formData.role !== 'student' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Password {editingUser ? '(leave blank to keep current)' : '*'}
+              </label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={e => setFormData({ ...formData, password: e.target.value })}
+                className="input-field"
+                placeholder="••••••••"
+              />
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
             <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">
