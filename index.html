@@ -561,6 +561,15 @@
       return str;
     }
 
+    function formatDateDisplay(str) {
+      if (!str) return str;
+      const clean = (str || '').trim();
+      // YYYY-MM-DD → DD/MM/YYYY
+      const m = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+      return clean;
+    }
+
     // ── Context Providers ────────────────────────────────────────────────
     const AuthContext = createContext(null);
     const AppContext = createContext(null);
@@ -1742,7 +1751,7 @@
                     <tr key={a.id} className="table-row">
                       <td className="px-4 py-3 text-xs text-slate-500 font-mono">{new Date(a.modifiedAt).toLocaleString('en-IN')}</td>
                       <td className="px-4 py-3 text-sm font-bold text-slate-800">{a.studentName} ({a.rollNumber})</td>
-                      <td className="px-4 py-3 text-xs text-slate-600">{a.courseName} · {a.date}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600">{a.courseName} · {formatDateDisplay(a.date)}</td>
                       <td className="px-4 py-3 text-center">
                         <StatusBadge status={a.oldStatus} /> → <StatusBadge status={a.newStatus} />
                       </td>
@@ -1763,7 +1772,7 @@
                   <div key={l.id} className="leave-card p-4 rounded-xl border border-slate-100 flex items-center justify-between">
                     <div>
                       <p className="font-bold text-slate-800 text-sm">{l.studentName} ({l.rollNumber})</p>
-                      <p className="text-xs text-slate-500">Reason: {l.reason} · Dates: {l.fromDate} to {l.toDate}</p>
+                      <p className="text-xs text-slate-500">Reason: {l.reason} · Dates: {formatDateDisplay(l.fromDate)} to {formatDateDisplay(l.toDate)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={l.status} />
@@ -1860,7 +1869,7 @@
                 <tbody className="divide-y divide-slate-100">
                   {records.map(r => (
                     <tr key={r.id} className="table-row">
-                      <td className="px-4 py-3 text-sm text-slate-600 font-mono">{r.date}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600 font-mono">{formatDateDisplay(r.date)}</td>
                       <td className="px-4 py-3 text-sm font-bold text-slate-800">{r.courseName}</td>
                       <td className="px-4 py-3 text-center"><StatusBadge status={r.status} /></td>
                       <td className="px-4 py-3 text-right">
@@ -1928,7 +1937,7 @@
                           {l.type === 'od' ? '🚀 On-Duty (OD)' : '📝 Absence Leave'}
                         </span>
                         <span className="text-xs font-bold text-slate-700">
-                          📅 {l.fromDate} {l.fromDate !== l.toDate && `→ ${l.toDate}`}
+                          📅 {formatDateDisplay(l.fromDate)} {l.fromDate !== l.toDate && `→ ${formatDateDisplay(l.toDate)}`}
                         </span>
                       </div>
                       <p className="text-sm font-semibold text-slate-800">"{l.reason}"</p>
