@@ -1810,9 +1810,18 @@
       const [reason, setReason] = useState('');
       const [submittedNotice, setSubmittedNotice] = useState('');
 
+      const convertToIso = (ddmmyyyy) => {
+        if (!ddmmyyyy) return '';
+        const p = parseDobParts(ddmmyyyy);
+        if (p) return `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`;
+        return ddmmyyyy;
+      };
+
       const handleApply = (e) => {
         e.preventDefault();
-        addLeave(user.id, { type: leaveType, fromDate, toDate, reason });
+        const isoFrom = convertToIso(fromDate);
+        const isoTo = convertToIso(toDate);
+        addLeave(user.id, { type: leaveType, fromDate: isoFrom, toDate: isoTo, reason });
         setFromDate(''); setToDate(''); setReason('');
         setSubmittedNotice('Application submitted successfully! It is now pending faculty review.');
         setTimeout(() => setSubmittedNotice(''), 4000);
@@ -1894,12 +1903,48 @@
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">From Date</label>
-                <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} required className="input-field" />
+                <label className="block text-xs font-bold text-slate-600 mb-1 flex items-center justify-between">
+                  <span>From Date</span>
+                  <span className="text-[9px] text-purple-600 font-mono font-bold">DD/MM/YYYY</span>
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="DD/MM/YYYY"
+                    value={fromDate}
+                    onChange={e => setFromDate(e.target.value)}
+                    required
+                    className="input-field font-mono text-xs pr-10"
+                  />
+                  <input
+                    type="date"
+                    onChange={e => { if (e.target.value) { const [y,m,d] = e.target.value.split('-'); setFromDate(`${d}/${m}/${y}`); } }}
+                    title="Pick date"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 opacity-60 hover:opacity-100 cursor-pointer bg-transparent border-0 filter invert"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">To Date</label>
-                <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} required className="input-field" />
+                <label className="block text-xs font-bold text-slate-600 mb-1 flex items-center justify-between">
+                  <span>To Date</span>
+                  <span className="text-[9px] text-purple-600 font-mono font-bold">DD/MM/YYYY</span>
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="DD/MM/YYYY"
+                    value={toDate}
+                    onChange={e => setToDate(e.target.value)}
+                    required
+                    className="input-field font-mono text-xs pr-10"
+                  />
+                  <input
+                    type="date"
+                    onChange={e => { if (e.target.value) { const [y,m,d] = e.target.value.split('-'); setToDate(`${d}/${m}/${y}`); } }}
+                    title="Pick date"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 opacity-60 hover:opacity-100 cursor-pointer bg-transparent border-0 filter invert"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Reason</label>
