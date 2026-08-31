@@ -4,7 +4,7 @@ import { useToast } from '../../context/ToastContext';
 import { PageHeader, EmptyState, Modal, ConfirmDialog, TabNav } from '../../components/ui';
 
 export default function CourseManagement() {
-  const { getCourses, addCourse, updateCourse, deleteCourse, getDepartments, addDepartment, deleteDepartment, getUsers } = useApp();
+  const { getCourses, addCourse, updateCourse, deleteCourse, getDepartments, addDepartment, updateDepartment, deleteDepartment, getUsers } = useApp();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState('courses');
@@ -20,6 +20,7 @@ export default function CourseManagement() {
 
   // Department Modal state
   const [deptModalOpen, setDeptModalOpen] = useState(false);
+  const [editingDept, setEditingDept] = useState(null);
   const [deptForm, setDeptForm] = useState({ name: '', code: '', hod: '' });
 
   // Confirm delete
@@ -67,6 +68,18 @@ export default function CourseManagement() {
     }
   };
 
+  const handleOpenAddDept = () => {
+    setEditingDept(null);
+    setDeptForm({ name: '', code: '', hod: '' });
+    setDeptModalOpen(true);
+  };
+
+  const handleOpenEditDept = (d) => {
+    setEditingDept(d);
+    setDeptForm({ name: d.name, code: d.code, hod: d.hod || '' });
+    setDeptModalOpen(true);
+  };
+
   const handleDeptSubmit = (e) => {
     e.preventDefault();
     if (!deptForm.name || !deptForm.code) {
@@ -74,12 +87,17 @@ export default function CourseManagement() {
       return;
     }
     try {
-      addDepartment(deptForm);
-      toast.success(`Department "${deptForm.name}" created!`);
+      if (editingDept) {
+        updateDepartment(editingDept.id, deptForm);
+        toast.success(`Department "${deptForm.name}" updated!`);
+      } else {
+        addDepartment(deptForm);
+        toast.success(`Department "${deptForm.name}" created!`);
+      }
       setDeptModalOpen(false);
       setDeptForm({ name: '', code: '', hod: '' });
     } catch (err) {
-      toast.error('Failed to create department.');
+      toast.error('Failed to save department.');
     }
   };
 
@@ -166,7 +184,7 @@ export default function CourseManagement() {
       {activeTab === 'departments' && (
         <>
           <div className="flex justify-end mb-4">
-            <button onClick={() => setDeptModalOpen(true)} className="btn-primary flex items-center gap-2">
+            <button onClick={handleOpenAddDept} className="btn-primary flex items-center gap-2">
               <span>➕</span> Add Department
             </button>
           </div>
@@ -174,7 +192,9 @@ export default function CourseManagement() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {departments.map((d, idx) => {
               if (!d) return null;
-              const hod = facultyList.find(f => f && f.id === d.hod);
+              // Check if HOD is stored as ID or string name
+              const hodUser = facultyList.find(f => f && f.id === d.hod);
+              const hodDisplay = hodUser ? hodUser.name : (d.hod || 'Not assigned');
               return (
                 <div key={d.id || idx} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
                   <div>
@@ -185,11 +205,17 @@ export default function CourseManagement() {
                     </div>
                     <h3 className="text-lg font-bold text-slate-800">{d.name}</h3>
                     <p className="text-xs text-slate-500 mt-2">
-                      Head of Dept (HOD): <strong className="text-slate-800">{hod?.name || 'Not assigned'}</strong>
+                      Head of Dept (HOD): <strong className="text-slate-800">{hodDisplay}</strong>
                     </p>
                   </div>
 
-                  <div className="flex justify-end mt-4 pt-3 border-t border-slate-50">
+                  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-50">
+                    <button
+                      onClick={() => handleOpenEditDept(d)}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition-colors"
+                    >
+                      ✏️ Edit
+                    </button>
                     <button
                       onClick={() => setDeleteDeptId(d.id)}
                       className="text-xs px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold transition-colors"
@@ -287,13 +313,13 @@ export default function CourseManagement() {
         </form>
       </Modal>
 
-      {/* Add Department Modal */}
+      {/* Add / Edit Department Modal */}
       <Modal
         isOpen={deptModalOpen}
         onClose={() => setDeptModalOpen(false)}
-        title="Add Department"
+        title={editingDept ? `Edit Department: ${editingDept.code}` : 'Add Department'}
       >
-        <form onSubmit={handleDeptSubmit} className="space-y-4">
+        <form onSubmit={handleDeptSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Department Name *</label>
             <input
@@ -319,18 +345,20 @@ export default function CourseManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Select HOD</label>
-              <select
+              <label className="block text-sm font-medium text-slate-700 mb-1">HOD Name</label>
+              <input
+                type="text"
+                list="faculty-list"
                 value={deptForm.hod}
                 onChange={e => setDeptForm({ ...deptForm, hod: e.target.value })}
+                placeholder="Type HOD Name or Select"
                 className="input-field"
-              >
-                <option value="">None / Select Faculty</option>
-                {(facultyList || []).map((f, idx) => {
-                  if (!f) return null;
-                  return <option key={f.id || idx} value={f.id || ''}>{f.name || 'Unnamed'}</option>;
-                })}
-              </select>
+              />
+              <datalist id="faculty-list">
+                {(facultyList || []).map(f => (
+                  <option key={f.id} value={f.name} />
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -339,7 +367,7 @@ export default function CourseManagement() {
               Cancel
             </button>
             <button type="submit" className="btn-primary">
-              Create Department
+              {editingDept ? 'Save Department' : 'Create Department'}
             </button>
           </div>
         </form>

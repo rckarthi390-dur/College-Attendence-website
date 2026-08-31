@@ -78,6 +78,13 @@ export function AppProvider({ children }) {
     return dept;
   };
   const deleteDepartment = (id) => updateDB(d => { d.departments = d.departments.filter(x => x.id !== id); return d; });
+  const updateDepartment = (id, data) => {
+    updateDB(d => {
+      const idx = d.departments.findIndex(x => x.id === id);
+      if (idx >= 0) d.departments[idx] = { ...d.departments[idx], ...data };
+      return d;
+    });
+  };
 
   // ── Attendance ─────────────────────────────────
   const getAttendance = (filters = {}) => {
@@ -374,7 +381,7 @@ export function AppProvider({ children }) {
       db,
       getUsers, getUserById, addUser, updateUser, deleteUser,
       getCourses, addCourse, updateCourse, deleteCourse,
-      getDepartments, addDepartment, deleteDepartment,
+      getDepartments, addDepartment, updateDepartment, deleteDepartment,
       getAttendance, getRoster, saveAttendanceSession, updateAttendanceRecord,
       getStudentAttendanceSummary, getAnalytics,
       getAuditLog,
