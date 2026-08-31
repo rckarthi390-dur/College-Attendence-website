@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
-import { StatusBadge, SearchBar, SelectField, EmptyState, PageHeader } from '../../components/ui';
+import { StatusBadge, SearchBar, SelectField, EmptyState, PageHeader, TabNav } from '../../components/ui';
 
 export default function AttendanceLog() {
   const { user } = useAuth();
   const { getStudentAttendanceSummary, getCourses } = useApp();
+  const [activeMode, setActiveMode] = useState('period'); // 'period' | 'daily'
 
-  const { records } = useMemo(
+  const { records, dailyRecords, periodRecords } = useMemo(
     () => getStudentAttendanceSummary(user.id),
     [user.id]
   );
@@ -18,8 +19,8 @@ export default function AttendanceLog() {
   const [search, setSearch] = useState('');
 
   const filteredRecords = useMemo(() => {
-    let list = [...records];
-    if (selectedCourse) list = list.filter(r => r.courseId === selectedCourse);
+    let list = activeMode === 'daily' ? [...dailyRecords] : [...periodRecords];
+    if (selectedCourse && activeMode === 'period') list = list.filter(r => r.courseId === selectedCourse);
     if (selectedStatus) list = list.filter(r => r.status === selectedStatus);
     if (search) {
       const q = search.toLowerCase();
@@ -30,15 +31,27 @@ export default function AttendanceLog() {
       );
     }
     return list.sort((a, b) => b.date.localeCompare(a.date));
-  }, [records, selectedCourse, selectedStatus, search]);
+  }, [records, dailyRecords, periodRecords, selectedCourse, selectedStatus, search, activeMode]);
 
-  const modifiedCount = useMemo(() => records.filter(r => r.wasModified).length, [records]);
+  const modifiedCount = useMemo(() => {
+    const list = activeMode === 'daily' ? dailyRecords : periodRecords;
+    return list.filter(r => r.wasModified).length;
+  }, [dailyRecords, periodRecords, activeMode]);
 
   return (
     <div className="page-enter">
       <PageHeader
         title="Attendance Log"
-        subtitle="Complete date-wise log of your attendance per subject with update history indicators"
+        subtitle="Complete date-wise log of your attendance with update history indicators"
+      />
+
+      <TabNav 
+        tabs={[
+          { id: 'period', label: 'Period Log', icon: '📚' },
+          { id: 'daily', label: 'Daily (Day Work) Log', icon: '💼' }
+        ]} 
+        active={activeMode} 
+        onChange={v => { setActiveMode(v); setSelectedCourse(''); setSelectedStatus(''); setSearch(''); }}
       />
 
       {modifiedCount > 0 && (
@@ -58,14 +71,18 @@ export default function AttendanceLog() {
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-5">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SearchBar value={search} onChange={setSearch} placeholder="Search subject or date (YYYY-MM-DD)..." />
-          <SelectField
-            label=""
-            value={selectedCourse}
-            onChange={setSelectedCourse}
-            options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))}
-            placeholder="All Subjects"
-          />
+          <SearchBar value={search} onChange={setSearch} placeholder={activeMode === 'daily' ? 'Search date (YYYY-MM-DD)...' : 'Search subject or date (YYYY-MM-DD)...'} />
+          {activeMode === 'period' ? (
+            <SelectField
+              label=""
+              value={selectedCourse}
+              onChange={setSelectedCourse}
+              options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))}
+              placeholder="All Subjects"
+            />
+          ) : (
+            <div className="hidden md:block" /> // spacer
+          )}
           <SelectField
             label=""
             value={selectedStatus}
@@ -91,7 +108,7 @@ export default function AttendanceLog() {
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
                   <th className="px-5 py-3 text-left table-header">Date</th>
-                  <th className="px-5 py-3 text-left table-header">Subject</th>
+                  <th className="px-5 py-3 text-left table-header">{activeMode === 'daily' ? 'Type' : 'Subject'}</th>
                   <th className="px-5 py-3 text-center table-header">Status</th>
                   <th className="px-5 py-3 text-right table-header">Update Indicator</th>
                 </tr>
@@ -109,7 +126,9 @@ export default function AttendanceLog() {
                     </td>
                     <td className="px-5 py-3.5">
                       <p className="text-sm font-semibold text-slate-800">{r.courseName}</p>
-                      <p className="text-xs text-slate-400">{r.courseCode}</p>
+                      <p className="text-xs text-slate-400">
+                        {r.courseCode} {activeMode === 'period' && r.period ? `· Period ${r.period}` : ''}
+                      </p>
                     </td>
                     <td className="px-5 py-3.5 text-center">
                       <StatusBadge status={r.status} />

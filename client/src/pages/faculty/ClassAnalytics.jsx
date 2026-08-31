@@ -13,28 +13,45 @@ export default function ClassAnalytics() {
   const { toast } = useToast();
 
   const departments = getDepartments();
+  const [attendanceType, setAttendanceType] = useState('period'); // 'daily' | 'period'
   const [dept, setDept] = useState(user.department || '');
   const [courseId, setCourseId] = useState('');
+  const [period, setPeriod] = useState('');
   const [section, setSection] = useState('');
   const courses = getCourses(dept);
 
-  const analytics = useMemo(() => getAnalytics({ department: dept || undefined, courseId: courseId || undefined, section: section || undefined }),
-    [dept, courseId, section]);
+  const analytics = useMemo(() => getAnalytics({ 
+    department: dept || undefined, 
+    courseId: attendanceType === 'daily' ? 'daily' : (courseId || undefined), 
+    section: section || undefined,
+    attendanceType,
+    period: attendanceType === 'period' ? (period || undefined) : undefined
+  }), [dept, courseId, section, attendanceType, period]);
 
   const overallStats = useMemo(() => {
-    const att = getAttendance({ courseId: courseId || undefined });
-    const filtered = dept || section ? att.filter(a => {
-      // we'll use student analytics for this
-      return true;
-    }) : att;
+    const att = getAttendance({ 
+      attendanceType,
+      courseId: attendanceType === 'daily' ? 'daily' : (courseId || undefined),
+      period: attendanceType === 'period' ? (period || undefined) : undefined
+    });
+    
+    // Filter records by students in selected department/section
+    const activeStudents = getAnalytics({ department: dept || undefined, section: section || undefined }).students || [];
+    const studentIds = new Set(activeStudents.map(s => s.studentId));
+    const filtered = att.filter(a => studentIds.has(a.studentId));
+
+    const uniqueSessionsKey = attendanceType === 'daily' 
+      ? a => `${a.date}` 
+      : a => `${a.courseId}-${a.date}-${a.period || '1'}`;
+
     return {
-      totalSessions: [...new Set(att.map(a => `${a.courseId}-${a.date}`))].length,
-      present: att.filter(a => a.status === 'present' || a.status === 'on-duty').length,
-      absent: att.filter(a => a.status === 'absent').length,
-      late: att.filter(a => a.status === 'late').length,
-      onDuty: att.filter(a => a.status === 'on-duty').length,
+      totalSessions: [...new Set(filtered.map(uniqueSessionsKey))].length,
+      present: filtered.filter(a => a.status === 'present' || a.status === 'on-duty').length,
+      absent: filtered.filter(a => a.status === 'absent').length,
+      late: filtered.filter(a => a.status === 'late').length,
+      onDuty: filtered.filter(a => a.status === 'on-duty').length,
     };
-  }, [courseId]);
+  }, [courseId, dept, section, attendanceType, period]);
 
   const barData = analytics.students?.slice(0, 15).map(s => ({
     name: s.name.split(' ')[0],
@@ -71,11 +88,19 @@ export default function ClassAnalytics() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+          <SelectField label="Attendance Mode" value={attendanceType} onChange={v => { setAttendanceType(v); setCourseId(''); setPeriod(''); }}
+            options={[{ value: 'daily', label: 'Daily (Day Work)' }, { value: 'period', label: 'Period-wise' }]} required />
           <SelectField label="Department" value={dept} onChange={v => { setDept(v); setCourseId(''); }}
             options={departments.map(d => ({ value: d.name, label: d.name }))} placeholder="All Departments" />
-          <SelectField label="Course" value={courseId} onChange={setCourseId}
-            options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))} placeholder="All Courses" />
+          {attendanceType === 'period' && (
+            <>
+              <SelectField label="Course" value={courseId} onChange={setCourseId}
+                options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))} placeholder="All Courses" />
+              <SelectField label="Period" value={period} onChange={setPeriod}
+                options={['1', '2', '3', '4', '5', '6', '7', '8'].map(p => ({ value: p, label: `Period ${p}` }))} placeholder="All Periods" />
+            </>
+          )}
           <SelectField label="Section" value={section} onChange={setSection}
             options={['A', 'B', 'C', 'D'].map(s => ({ value: s, label: `Section ${s}` }))} placeholder="All Sections" />
         </div>
@@ -85,7 +110,7 @@ export default function ClassAnalytics() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard label="Total Students" value={analytics.students?.length || 0} icon="👥" color="blue" />
         <StatCard label="Low Attendance" value={analytics.lowAttendance?.length || 0} icon="⚠️" color="red" sub={`< ${analytics.threshold}%`} />
-        <StatCard label="Total Classes" value={overallStats.totalSessions} icon="📅" color="teal" />
+        <StatCard label="Total Sessions" value={overallStats.totalSessions} icon="📅" color="teal" />
         <StatCard label="Avg Attendance" value={analytics.students?.length > 0 ? Math.round(analytics.students.reduce((s, st) => s + st.percentage, 0) / analytics.students.length) + '%' : 'N/A'} icon="📊" color="green" />
       </div>
 

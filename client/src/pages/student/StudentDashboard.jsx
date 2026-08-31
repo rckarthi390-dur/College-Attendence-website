@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
-import { PercentageCircle, StatCard, EmptyState } from '../../components/ui';
+import { PercentageCircle, StatCard, EmptyState, TabNav } from '../../components/ui';
 
 function SubjectCard({ stat, threshold }) {
   const isLow = stat.percentage < threshold && stat.total > 0;
@@ -41,49 +41,68 @@ function SubjectCard({ stat, threshold }) {
   );
 }
 
+
 export default function StudentDashboard() {
   const { user } = useAuth();
   const { getStudentAttendanceSummary, getSettings } = useApp();
+  const [activeMode, setActiveMode] = useState('period'); // 'period' | 'daily'
 
-  const { records, stats, overallPercentage } = useMemo(
+  const { records, stats, overallPercentage, dailyRecords, periodRecords, dailyStats } = useMemo(
     () => getStudentAttendanceSummary(user.id),
     [user.id]
   );
   const settings = getSettings();
   const threshold = settings.attendanceThreshold;
 
+  const currentRecords = activeMode === 'daily' ? dailyRecords : periodRecords;
+  const currentPercentage = activeMode === 'daily' ? dailyStats.percentage : overallPercentage;
+
   const totals = useMemo(() => ({
-    total:   records.length,
-    present: records.filter(r => r.status === 'present' || r.status === 'on-duty').length,
-    absent:  records.filter(r => r.status === 'absent').length,
-    late:    records.filter(r => r.status === 'late').length,
-  }), [records]);
+    total:   currentRecords.length,
+    present: currentRecords.filter(r => r.status === 'present' || r.status === 'on-duty').length,
+    absent:  currentRecords.filter(r => r.status === 'absent').length,
+    late:    currentRecords.filter(r => r.status === 'late').length,
+  }), [currentRecords]);
 
   const recentRecords = useMemo(() =>
-    [...records].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6),
-    [records]
+    [...currentRecords].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6),
+    [currentRecords]
   );
 
-  const isGood = overallPercentage >= threshold;
+  const isGood = currentPercentage >= threshold;
 
   return (
     <div className="page-enter">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Welcome, {user.name.split(' ')[0]}! 🎓</h1>
-        <p className="text-slate-500 text-sm mt-0.5">
-          {user.rollNumber} · {user.department} · Section {user.section} · Year {user.year}
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Welcome, {user.name.split(' ')[0]}! 🎓</h1>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {user.rollNumber} · {user.department} · Section {user.section} · Year {user.year}
+          </p>
+        </div>
       </div>
+
+      {/* Tabs Selection */}
+      <TabNav 
+        tabs={[
+          { id: 'period', label: 'Period Attendance', icon: '📚' },
+          { id: 'daily', label: 'Daily (Day Work) Attendance', icon: '💼' }
+        ]} 
+        active={activeMode} 
+        onChange={setActiveMode} 
+      />
 
       {/* Hero attendance card */}
       <div className={`rounded-3xl p-6 mb-6 text-white flex flex-col sm:flex-row items-center gap-6 ${isGood ? 'bg-gradient-to-br from-emerald-600 to-teal-700' : 'bg-gradient-to-br from-rose-600 to-red-700'}`}>
         <div className="flex-shrink-0">
-          <PercentageCircle value={overallPercentage} size={140} threshold={threshold} />
+          <PercentageCircle value={currentPercentage} size={140} threshold={threshold} />
         </div>
         <div className="text-center sm:text-left">
-          <p className="text-white/70 text-sm font-medium uppercase tracking-wide">Overall Attendance</p>
-          <p className="text-5xl font-extrabold mt-1">{overallPercentage}%</p>
+          <p className="text-white/70 text-sm font-medium uppercase tracking-wide">
+            Overall {activeMode === 'daily' ? 'Daily Work' : 'Period'} Attendance
+          </p>
+          <p className="text-5xl font-extrabold mt-1">{currentPercentage}%</p>
           <p className="text-white/80 text-base mt-2 font-medium">
             {isGood ? '✓ You are meeting the required threshold' : '⚠ You are below the required threshold'}
           </p>
@@ -93,23 +112,46 @@ export default function StudentDashboard() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Classes"   value={totals.total}   icon="📅" color="blue"   sub="All subjects combined" />
+        <StatCard label={activeMode === 'daily' ? 'Total Days' : 'Total Classes'} value={totals.total} icon="📅" color="blue" sub="All recorded sessions" />
         <StatCard label="Present / OD"    value={totals.present} icon="✅" color="green"  sub="Counted as attended" />
-        <StatCard label="Absent"          value={totals.absent}  icon="❌" color="red"    sub="Unattended classes" />
+        <StatCard label="Absent"          value={totals.absent}  icon="❌" color="red"    sub="Unattended sessions" />
         <StatCard label="Late"            value={totals.late}    icon="⏰" color="amber"  sub="Marked late arrivals" />
       </div>
 
-      {/* Subject breakdown */}
-      <div className="mb-8">
-        <h2 className="text-base font-bold text-slate-800 mb-4">📚 Subject-wise Breakdown</h2>
-        {stats.length === 0 ? (
-          <EmptyState icon="📭" title="No attendance records yet" desc="Your attendance will appear here once your faculty marks it." />
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stats.map(s => <SubjectCard key={s.courseId} stat={s} threshold={threshold} />)}
-          </div>
-        )}
-      </div>
+      {/* Mode-specific content */}
+      {activeMode === 'period' ? (
+        <div className="mb-8">
+          <h2 className="text-base font-bold text-slate-800 mb-4">📚 Subject-wise Breakdown</h2>
+          {stats.length === 0 ? (
+            <EmptyState icon="📭" title="No attendance records yet" desc="Your attendance will appear here once your faculty marks it." />
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {stats.map(s => <SubjectCard key={s.courseId} stat={s} threshold={threshold} />)}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mb-8 bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+          <h2 className="text-base font-bold text-slate-800 mb-4">💼 Daily Work Roster Status</h2>
+          {dailyRecords.length === 0 ? (
+            <EmptyState icon="📭" title="No daily attendance marked yet" desc="Your daily work attendance will appear here once marked." />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { label: 'Present / OD Days', value: dailyStats.present, color: 'bg-emerald-50 text-emerald-700' },
+                { label: 'Absent Days', value: dailyStats.absent, color: 'bg-red-50 text-red-700' },
+                { label: 'Late Days', value: dailyStats.late, color: 'bg-amber-50 text-amber-700' },
+                { label: 'Total Duty Days', value: dailyStats.total, color: 'bg-blue-50 text-blue-700' }
+              ].map(item => (
+                <div key={item.label} className={`p-4 rounded-2xl text-center ${item.color}`}>
+                  <p className="text-2xl font-black">{item.value}</p>
+                  <p className="text-xs font-semibold mt-1">{item.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recent records */}
       {recentRecords.length > 0 && (
@@ -132,7 +174,7 @@ export default function StudentDashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-700 truncate">{r.courseName}</p>
-                    <p className="text-xs text-slate-400">{r.courseCode}</p>
+                    <p className="text-xs text-slate-400">{r.courseCode} {r.period ? `· Period ${r.period}` : ''}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {r.wasModified && <span title="Updated by faculty" className="text-xs text-amber-500">✏️</span>}

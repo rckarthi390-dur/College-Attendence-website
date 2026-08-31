@@ -82,39 +82,108 @@ export function AppProvider({ children }) {
   // ── Attendance ─────────────────────────────────
   const getAttendance = (filters = {}) => {
     let recs = db.attendance;
+    if (filters.attendanceType) {
+      if (filters.attendanceType === 'daily') {
+        recs = recs.filter(r => r.attendanceType === 'daily' || r.courseId === 'daily');
+      } else {
+        recs = recs.filter(r => r.attendanceType === 'period' || !r.attendanceType);
+      }
+    }
     if (filters.courseId) recs = recs.filter(r => r.courseId === filters.courseId);
+    if (filters.period) recs = recs.filter(r => r.period === filters.period);
     if (filters.date) recs = recs.filter(r => r.date === filters.date);
     if (filters.studentId) recs = recs.filter(r => r.studentId === filters.studentId);
     return recs;
   };
 
-  const getRoster = (courseId, section, date, department) => {
+  const getRoster = (courseId, section, date, department, attendanceType = 'period', period = null) => {
     let students = db.users.filter(u => u.role === 'student' && u.section === section);
     if (department) students = students.filter(s => s.department === department);
-    const existing = db.attendance.filter(a => a.courseId === courseId && a.date === date);
+    
+    const existing = db.attendance.filter(a => {
+      if (attendanceType === 'daily') {
+        return a.date === date && (a.attendanceType === 'daily' || a.courseId === 'daily');
+      } else {
+        return a.date === date && 
+               a.courseId === courseId && 
+               (a.period === period || (!a.attendanceType && period === '1')) &&
+               (a.attendanceType === 'period' || !a.attendanceType);
+      }
+    });
+
     return students.map(s => {
       const att = existing.find(a => a.studentId === s.id);
-      return { studentId: s.id, name: s.name, rollNumber: s.rollNumber, section: s.section, status: att ? att.status : 'present', attendanceId: att ? att.id : null };
+      return { 
+        studentId: s.id, 
+        name: s.name, 
+        rollNumber: s.rollNumber, 
+        section: s.section, 
+        status: att ? att.status : 'present', 
+        attendanceId: att ? att.id : null,
+        originalStatus: att ? att.status : null
+      };
     });
   };
 
-  const saveAttendanceSession = (courseId, date, records, markedBy) => {
+  const saveAttendanceSession = (courseId, date, records, markedBy, attendanceType = 'period', period = null) => {
     const saved = [];
     const auditEntries = [];
+    const targetCourseId = attendanceType === 'daily' ? 'daily' : courseId;
     updateDB(d => {
       records.forEach(r => {
-        const idx = d.attendance.findIndex(a => a.studentId === r.studentId && a.courseId === courseId && a.date === date);
+        const idx = d.attendance.findIndex(a => {
+          if (attendanceType === 'daily') {
+            return a.studentId === r.studentId && a.date === date && (a.attendanceType === 'daily' || a.courseId === 'daily');
+          } else {
+            return a.studentId === r.studentId && 
+                   a.courseId === courseId && 
+                   a.date === date && 
+                   (a.period === period || (!a.attendanceType && period === '1')) &&
+                   (a.attendanceType === 'period' || !a.attendanceType);
+          }
+        });
+
         if (idx >= 0) {
           const old = d.attendance[idx];
           if (old.status !== r.status) {
-            const entry = { id: `audit-${uuidv4()}`, attendanceId: old.id, studentId: r.studentId, courseId, date, oldStatus: old.status, newStatus: r.status, modifiedBy: markedBy, modifiedAt: new Date().toISOString(), reason: 'Manual update' };
+            const entry = { 
+              id: `audit-${uuidv4()}`, 
+              attendanceId: old.id, 
+              studentId: r.studentId, 
+              courseId: targetCourseId, 
+              date, 
+              oldStatus: old.status, 
+              newStatus: r.status, 
+              modifiedBy: markedBy, 
+              modifiedAt: new Date().toISOString(), 
+              reason: 'Manual update',
+              attendanceType,
+              period: attendanceType === 'period' ? period : null
+            };
             d.auditLog.push(entry);
             auditEntries.push(entry);
           }
-          d.attendance[idx] = { ...old, status: r.status, markedBy, markedAt: new Date().toISOString() };
+          d.attendance[idx] = { 
+            ...old, 
+            status: r.status, 
+            markedBy, 
+            markedAt: new Date().toISOString(),
+            attendanceType,
+            period: attendanceType === 'period' ? period : null
+          };
           saved.push(d.attendance[idx]);
         } else {
-          const rec = { id: `att-${uuidv4()}`, studentId: r.studentId, courseId, date, status: r.status, markedBy, markedAt: new Date().toISOString() };
+          const rec = { 
+            id: `att-${uuidv4()}`, 
+            studentId: r.studentId, 
+            courseId: targetCourseId, 
+            date, 
+            status: r.status, 
+            markedBy, 
+            markedAt: new Date().toISOString(),
+            attendanceType,
+            period: attendanceType === 'period' ? period : null
+          };
           d.attendance.push(rec);
           saved.push(rec);
         }
@@ -131,7 +200,20 @@ export function AppProvider({ children }) {
       if (idx >= 0) {
         const old = d.attendance[idx];
         if (old.status !== status) {
-          auditEntry = { id: `audit-${uuidv4()}`, attendanceId: id, studentId: old.studentId, courseId: old.courseId, date: old.date, oldStatus: old.status, newStatus: status, modifiedBy, modifiedAt: new Date().toISOString(), reason: reason || 'Manual correction' };
+          auditEntry = { 
+            id: `audit-${uuidv4()}`, 
+            attendanceId: id, 
+            studentId: old.studentId, 
+            courseId: old.courseId, 
+            date: old.date, 
+            oldStatus: old.status, 
+            newStatus: status, 
+            modifiedBy, 
+            modifiedAt: new Date().toISOString(), 
+            reason: reason || 'Manual correction',
+            attendanceType: old.attendanceType || 'period',
+            period: old.period || null
+          };
           d.auditLog.push(auditEntry);
           d.attendance[idx] = { ...old, status, markedBy: modifiedBy, markedAt: new Date().toISOString() };
         }
@@ -144,22 +226,67 @@ export function AppProvider({ children }) {
   const getStudentAttendanceSummary = (studentId) => {
     const records = db.attendance.filter(a => a.studentId === studentId);
     const threshold = db.settings.attendanceThreshold;
+
+    const dailyRecords = records.filter(r => r.attendanceType === 'daily' || r.courseId === 'daily');
+    const periodRecords = records.filter(r => r.attendanceType !== 'daily' && r.courseId !== 'daily');
+
     const stats = db.courses.map(course => {
-      const recs = records.filter(r => r.courseId === course.id);
+      const recs = periodRecords.filter(r => r.courseId === course.id);
       const total = recs.length;
       const present = recs.filter(r => r.status === 'present' || r.status === 'on-duty').length;
       const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
-      return { courseId: course.id, courseName: course.name, courseCode: course.code, total, present, absent: recs.filter(r => r.status === 'absent').length, late: recs.filter(r => r.status === 'late').length, onDuty: recs.filter(r => r.status === 'on-duty').length, percentage, isLow: percentage < threshold && total > 0 };
+      return { 
+        courseId: course.id, 
+        courseName: course.name, 
+        courseCode: course.code, 
+        total, 
+        present, 
+        absent: recs.filter(r => r.status === 'absent').length, 
+        late: recs.filter(r => r.status === 'late').length, 
+        onDuty: recs.filter(r => r.status === 'on-duty').length, 
+        percentage, 
+        isLow: percentage < threshold && total > 0 
+      };
     }).filter(s => s.total > 0);
-    const totalRecs = records.length;
-    const presentRecs = records.filter(r => r.status === 'present' || r.status === 'on-duty').length;
-    const overallPercentage = totalRecs > 0 ? Math.round((presentRecs / totalRecs) * 100) : 0;
+
+    const totalPeriodRecs = periodRecords.length;
+    const presentPeriodRecs = periodRecords.filter(r => r.status === 'present' || r.status === 'on-duty').length;
+    const overallPercentage = totalPeriodRecs > 0 ? Math.round((presentPeriodRecs / totalPeriodRecs) * 100) : 0;
+
+    const totalDailyRecs = dailyRecords.length;
+    const presentDailyRecs = dailyRecords.filter(r => r.status === 'present' || r.status === 'on-duty').length;
+    const dailyPercentage = totalDailyRecs > 0 ? Math.round((presentDailyRecs / totalDailyRecs) * 100) : 0;
+    const dailyStats = {
+      total: totalDailyRecs,
+      present: presentDailyRecs,
+      absent: dailyRecords.filter(r => r.status === 'absent').length,
+      late: dailyRecords.filter(r => r.status === 'late').length,
+      onDuty: dailyRecords.filter(r => r.status === 'on-duty').length,
+      percentage: dailyPercentage,
+      isLow: dailyPercentage < threshold && totalDailyRecs > 0
+    };
+
     const enrichedRecords = records.map(r => {
-      const course = db.courses.find(c => c.id === r.courseId);
+      const isDaily = r.attendanceType === 'daily' || r.courseId === 'daily';
+      const course = isDaily ? { name: 'Day Work Attendance', code: 'DAILY' } : db.courses.find(c => c.id === r.courseId);
       const audits = db.auditLog.filter(a => a.attendanceId === r.id);
-      return { ...r, courseName: course?.name || '', courseCode: course?.code || '', wasModified: audits.length > 0 };
+      return { 
+        ...r, 
+        courseName: course?.name || '', 
+        courseCode: course?.code || '', 
+        wasModified: audits.length > 0,
+        attendanceType: isDaily ? 'daily' : (r.attendanceType || 'period')
+      };
     });
-    return { records: enrichedRecords, stats, overallPercentage };
+
+    return { 
+      records: enrichedRecords, 
+      periodRecords: enrichedRecords.filter(r => r.attendanceType !== 'daily'),
+      dailyRecords: enrichedRecords.filter(r => r.attendanceType === 'daily'),
+      stats, 
+      overallPercentage,
+      dailyStats
+    };
   };
 
   const getAnalytics = (filters = {}) => {
@@ -167,14 +294,35 @@ export function AppProvider({ children }) {
     if (filters.section) students = students.filter(s => s.section === filters.section);
     if (filters.department) students = students.filter(s => s.department === filters.department);
     const threshold = db.settings.attendanceThreshold;
+    const type = filters.attendanceType || 'period';
+
     const stats = students.map(s => {
       let recs = db.attendance.filter(a => a.studentId === s.id);
-      if (filters.courseId) recs = recs.filter(r => r.courseId === filters.courseId);
+      if (type === 'daily') {
+        recs = recs.filter(r => r.attendanceType === 'daily' || r.courseId === 'daily');
+      } else {
+        recs = recs.filter(r => r.attendanceType === 'period' || !r.attendanceType);
+        if (filters.courseId) recs = recs.filter(r => r.courseId === filters.courseId);
+        if (filters.period) recs = recs.filter(r => r.period === filters.period);
+      }
       const total = recs.length;
       const present = recs.filter(r => r.status === 'present' || r.status === 'on-duty').length;
       const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
-      return { studentId: s.id, name: s.name, rollNumber: s.rollNumber, section: s.section, department: s.department, total, present, absent: recs.filter(r => r.status === 'absent').length, late: recs.filter(r => r.status === 'late').length, percentage, isLow: percentage < threshold };
+      return { 
+        studentId: s.id, 
+        name: s.name, 
+        rollNumber: s.rollNumber, 
+        section: s.section, 
+        department: s.department, 
+        total, 
+        present, 
+        absent: recs.filter(r => r.status === 'absent').length, 
+        late: recs.filter(r => r.status === 'late').length, 
+        percentage, 
+        isLow: percentage < threshold && total > 0 
+      };
     }).filter(s => s.total > 0);
+
     return { students: stats, lowAttendance: stats.filter(s => s.isLow), threshold };
   };
 

@@ -19,9 +19,11 @@ export default function AttendanceHistory() {
   const { toast } = useToast();
 
   const departments = getDepartments();
+  const [attendanceType, setAttendanceType] = useState('period'); // 'daily' | 'period'
   const [dept, setDept] = useState(user.department || '');
   const courses = getCourses(dept);
   const [courseId, setCourseId] = useState('');
+  const [period, setPeriod] = useState('1');
   const [section, setSection] = useState('');
   const [date, setDate] = useState('');
   const [records, setRecords] = useState([]);
@@ -32,17 +34,26 @@ export default function AttendanceHistory() {
 
   // Get unique dates with attendance data
   const datesWithData = useMemo(() => {
-    let att = getAttendance({});
-    if (courseId) att = att.filter(a => a.courseId === courseId);
+    let att = getAttendance({ attendanceType });
+    if (attendanceType === 'daily') {
+      // no course or period filter
+    } else {
+      if (courseId) att = att.filter(a => a.courseId === courseId);
+      if (period) att = att.filter(a => a.period === period || (!a.period && period === '1'));
+    }
     return [...new Set(att.map(a => a.date))].sort((a, b) => b.localeCompare(a));
-  }, [courseId]);
+  }, [courseId, attendanceType, period]);
 
   const loadHistory = () => {
-    if (!courseId || !section || !date) {
-      toast.warning('Please select Course, Section, and Date.');
+    if (attendanceType === 'period' && (!courseId || !period)) {
+      toast.warning('Please select Course and Period.');
       return;
     }
-    const roster = getRoster(courseId, section, date, dept);
+    if (!section || !date) {
+      toast.warning('Please select Section and Date.');
+      return;
+    }
+    const roster = getRoster(courseId, section, date, dept, attendanceType, period);
     setRecords(roster);
     setLoaded(true);
     toast.info(`Loaded ${roster.length} historical records.`);
@@ -62,10 +73,10 @@ export default function AttendanceHistory() {
       return;
     }
     try {
-      const { saved, auditEntries } = saveAttendanceSession(courseId, date, records, user.id);
+      const { saved, auditEntries } = saveAttendanceSession(courseId, date, records, user.id, attendanceType, period);
       toast.success(`Historical attendance updated. ${auditEntries.length} audit log entries created.`);
       // Reload
-      const freshRoster = getRoster(courseId, section, date, dept);
+      const freshRoster = getRoster(courseId, section, date, dept, attendanceType, period);
       setRecords(freshRoster);
     } catch (err) {
       toast.error('Failed to save.');
@@ -82,11 +93,19 @@ export default function AttendanceHistory() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-5">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
+          <SelectField label="Attendance Mode" value={attendanceType} onChange={v => { setAttendanceType(v); setLoaded(false); setDate(''); }}
+            options={[{ value: 'daily', label: 'Daily (Day Work)' }, { value: 'period', label: 'Period-wise' }]} required />
           <SelectField label="Department" value={dept} onChange={v => { setDept(v); setCourseId(''); setLoaded(false); }}
             options={departments.map(d => ({ value: d.name, label: d.name }))} />
-          <SelectField label="Course *" value={courseId} onChange={v => { setCourseId(v); setLoaded(false); setDate(''); }}
-            options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))} required />
+          {attendanceType === 'period' && (
+            <>
+              <SelectField label="Course *" value={courseId} onChange={v => { setCourseId(v); setLoaded(false); setDate(''); }}
+                options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))} required />
+              <SelectField label="Period *" value={period} onChange={v => { setPeriod(v); setLoaded(false); setDate(''); }}
+                options={['1', '2', '3', '4', '5', '6', '7', '8'].map(p => ({ value: p, label: `Period ${p}` }))} required />
+            </>
+          )}
           <SelectField label="Section *" value={section} onChange={v => { setSection(v); setLoaded(false); }}
             options={['A', 'B', 'C', 'D'].map(s => ({ value: s, label: `Section ${s}` }))} required />
           <div>
@@ -102,8 +121,8 @@ export default function AttendanceHistory() {
             <button onClick={loadHistory} className="btn-primary w-full">Load History</button>
           </div>
         </div>
-        {datesWithData.length === 0 && courseId && (
-          <p className="text-xs text-slate-500 mt-3">ℹ️ No attendance records found for this course yet.</p>
+        {datesWithData.length === 0 && (
+          <p className="text-xs text-slate-500 mt-3">ℹ️ No attendance records found for this combination yet.</p>
         )}
       </div>
 
@@ -112,7 +131,7 @@ export default function AttendanceHistory() {
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div>
               <p className="text-sm font-semibold text-slate-700">
-                {courses.find(c => c.id === courseId)?.name} · Section {section} · {date ? new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+                {attendanceType === 'daily' ? 'Day Work Attendance' : `${courses.find(c => c.id === courseId)?.name} (Period ${period})`} · Section {section} · {date ? new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''}
               </p>
               {modifiedCount > 0 && (
                 <p className="text-xs text-amber-600 font-medium mt-0.5">⚠️ {modifiedCount} unsaved change{modifiedCount > 1 ? 's' : ''} — save to create audit entries</p>

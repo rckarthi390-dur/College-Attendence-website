@@ -19,9 +19,11 @@ export default function MarkAttendance() {
   const { toast } = useToast();
 
   const departments = getDepartments();
+  const [attendanceType, setAttendanceType] = useState('period'); // 'daily' | 'period'
   const [dept, setDept] = useState(user.department || '');
   const courses = getCourses(dept);
   const [courseId, setCourseId] = useState('');
+  const [period, setPeriod] = useState('1');
   const [section, setSection] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [roster, setRoster] = useState([]);
@@ -37,11 +39,15 @@ export default function MarkAttendance() {
   }, [dept]);
 
   const loadRoster = () => {
-    if (!courseId || !section || !date) {
-      toast.warning('Please select Course, Section, and Date first.');
+    if (attendanceType === 'period' && (!courseId || !period)) {
+      toast.warning('Please select Course and Period.');
       return;
     }
-    const data = getRoster(courseId, section, date, dept);
+    if (!section || !date) {
+      toast.warning('Please select Section and Date.');
+      return;
+    }
+    const data = getRoster(courseId, section, date, dept, attendanceType, period);
     setRoster(data);
     setLoaded(true);
     if (data.length === 0) toast.info('No students found for this section.');
@@ -73,7 +79,7 @@ export default function MarkAttendance() {
     if (!roster.length) return;
     setSaving(true);
     try {
-      const { saved } = saveAttendanceSession(courseId, date, roster, user.id);
+      const { saved } = saveAttendanceSession(courseId, date, roster, user.id, attendanceType, period);
       toast.success(`Attendance saved for ${saved.length} students!`);
     } catch (err) {
       toast.error('Failed to save attendance.');
@@ -90,11 +96,19 @@ export default function MarkAttendance() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5 mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 mb-2">
+          <SelectField label="Attendance Mode" value={attendanceType} onChange={v => { setAttendanceType(v); setLoaded(false); }}
+            options={[{ value: 'daily', label: 'Daily (Day Work)' }, { value: 'period', label: 'Period-wise' }]} required />
           <SelectField label="Department" value={dept} onChange={v => { setDept(v); setCourseId(''); setSection(''); setLoaded(false); }}
             options={departments.map(d => ({ value: d.name, label: d.name }))} placeholder="All Departments" />
-          <SelectField label="Course *" value={courseId} onChange={v => { setCourseId(v); setLoaded(false); }}
-            options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))} placeholder="Select course" required />
+          {attendanceType === 'period' && (
+            <>
+              <SelectField label="Course *" value={courseId} onChange={v => { setCourseId(v); setLoaded(false); }}
+                options={courses.map(c => ({ value: c.id, label: `${c.code} – ${c.name}` }))} placeholder="Select course" required />
+              <SelectField label="Period *" value={period} onChange={v => { setPeriod(v); setLoaded(false); }}
+                options={['1', '2', '3', '4', '5', '6', '7', '8'].map(p => ({ value: p, label: `Period ${p}` }))} placeholder="Select period" required />
+            </>
+          )}
           <SelectField label="Section *" value={section} onChange={v => { setSection(v); setLoaded(false); }}
             options={['A', 'B', 'C', 'D'].map(s => ({ value: s, label: `Section ${s}` }))} placeholder="Select section" required />
           <div>
@@ -115,7 +129,9 @@ export default function MarkAttendance() {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-slate-800">{courseName} · Section {section} · {new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                <p className="text-sm font-bold text-slate-800">
+                  {attendanceType === 'daily' ? 'Day Work Attendance' : `${courseName} (Period ${period})`} · Section {section} · {new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
                 <p className="text-xs text-slate-500 mt-0.5">{roster.length} students total</p>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap">
