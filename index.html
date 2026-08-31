@@ -2118,6 +2118,22 @@
         setEditingDept(null);
       };
 
+      const [newC, setNewC] = useState({ name: '', code: '', department: 'Computer Science', credits: 4, faculty: '' });
+      const handleAddCourse = (e) => {
+        e.preventDefault();
+        if (!newC.name.trim() || !newC.code.trim()) return;
+        const courseData = {
+          ...newC,
+          code: newC.code.trim().toUpperCase(),
+          credits: Number(newC.credits) || 4,
+          faculty: newC.faculty || (facultyUsers[0] ? facultyUsers[0].id : 'fac-001')
+        };
+        addCourse(courseData);
+        setCourseAddedNotice(`Course "${courseData.name}" (${courseData.code}) added successfully!`);
+        setTimeout(() => setCourseAddedNotice(''), 4000);
+        setNewC({ name: '', code: '', department: newC.department || 'Computer Science', credits: 4, faculty: '' });
+      };
+
       const [editingCourse, setEditingCourse] = useState(null);
       const handleUpdateCourse = (e) => {
         e.preventDefault();
