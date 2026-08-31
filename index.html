@@ -377,11 +377,7 @@
 <body>
   <div id="root"></div>
 
-  <!-- ══════════════════════════════════════════════════════════════════
-       FIREBASE CONFIG — Paste your Firebase project config below.
-       Steps: console.firebase.google.com → Project → Web App → Copy config
-               → Build → Realtime Database → Create (Test mode)
-       ══════════════════════════════════════════════════════════════════ -->
+  <!-- FIREBASE CONFIG — Paste your Firebase project config below -->
   <script>
     window._FB_CONFIG = {
       apiKey: "AIzaSyAO8WVMniIKMFeM81QykSWx9RJc7D0GGjk",
@@ -789,87 +785,56 @@
 
       // ── Firebase Real-time Listener ─────────────────────────────────────
       useEffect(() => {
-        if (!window._FIREBASE_DB) return; // Firebase not configured, skip
-
+        if (!window._FIREBASE_DB) return;
         setIsSyncing(true);
         const fbRef = window._FIREBASE_DB.ref(window._FB_PATH);
-
         fbRef.on('value', (snapshot) => {
           const data = snapshot.val();
           setLastSync(new Date());
           setIsSyncing(false);
-
-          if (!data) {
-            // Firebase empty — seed it with current local data
-            setDb(current => { pushToFirebase(current); return current; });
-            return;
-          }
-
-          // Skip updates written by THIS device (prevents loop)
+          if (!data) { setDb(c => { pushToFirebase(c); return c; }); return; }
           if (data._device === DEVICE_ID) return;
-
-          // Apply remote update from another device
           isApplyingFirebase.current = true;
           setDb(current => {
             const next = JSON.parse(JSON.stringify(current));
-
-            // Users: add new, update existing, remove deleted
             if (Array.isArray(data.users)) {
               const fbIds = new Set(data.users.map(u => u.id));
-              // Remove users deleted from another device (keep admin + local-only)
               next.users = next.users.filter(u => {
                 if (u.id === 'admin-karthi') return true;
                 if (DEMO_USER_IDS.includes(u.id)) return false;
                 if (u.email && DEMO_EMAILS.includes(u.email.toLowerCase())) return false;
                 return fbIds.has(u.id);
               });
-              // Add / update from Firebase
               data.users.forEach(fu => {
                 if (DEMO_USER_IDS.includes(fu.id)) return;
                 if (fu.email && DEMO_EMAILS.includes(fu.email.toLowerCase())) return;
                 const idx = next.users.findIndex(u => u.id === fu.id);
-                if (idx >= 0) {
-                  next.users[idx] = { ...next.users[idx], ...fu };
-                } else {
-                  next.users.push(fu);
-                }
+                if (idx >= 0) { next.users[idx] = { ...next.users[idx], ...fu }; }
+                else { next.users.push(fu); }
               });
             }
-
             if (Array.isArray(data.attendance)) next.attendance = data.attendance;
             if (Array.isArray(data.courses) && data.courses.length > 0) next.courses = data.courses;
             if (Array.isArray(data.departments) && data.departments.length > 0) next.departments = data.departments;
             if (Array.isArray(data.leaves)) next.leaves = data.leaves;
             if (data.settings) next.settings = { ...next.settings, ...data.settings };
-
             saveDB(next);
             isApplyingFirebase.current = false;
             return next;
           });
         });
-
-        return () => {
-          fbRef.off();
-          clearTimeout(fbWriteTimer.current);
-        };
+        return () => { fbRef.off(); clearTimeout(fbWriteTimer.current); };
       }, [DEVICE_ID, pushToFirebase]);
 
-      // ── Fallback: Render backend polling (only if Firebase NOT configured) ──
+      // ── Fallback: Render polling (only when Firebase NOT configured) ──
       const syncWithCloud = useCallback(async () => {
-        if (window._FIREBASE_DB) return; // Firebase active — skip
+        if (window._FIREBASE_DB) return;
         try {
           setIsSyncing(true);
           const token = await getOrFetchCloudToken('admin');
           if (!token) { setIsSyncing(false); return; }
           const headers = { 'Authorization': `Bearer ${token}` };
-          const [usersRes, deptsRes, coursesRes, leavesRes, settingsRes, attRes] = await Promise.allSettled([
-            fetch(`${API_BASE}/users`, { headers }),
-            fetch(`${API_BASE}/departments`, { headers }),
-            fetch(`${API_BASE}/courses`, { headers }),
-            fetch(`${API_BASE}/leaves`, { headers }),
-            fetch(`${API_BASE}/settings`, { headers }),
-            fetch(`${API_BASE}/attendance`, { headers })
-          ]);
+          const [usersRes] = await Promise.allSettled([fetch(`${API_BASE}/users`, { headers })]);
           updateDB(d => {
             if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
               usersRes.value.json().then(cloudUsers => {
@@ -891,29 +856,15 @@
             return d;
           });
           setLastSync(new Date());
-        } catch (err) {
-          console.warn('Render sync error:', err);
-        } finally { setIsSyncing(false); }
+        } catch(err) { console.warn('Render sync error:', err); }
+        finally { setIsSyncing(false); }
       }, [updateDB]);
 
       useEffect(() => {
-        if (window._FIREBASE_DB) return; // Firebase handles sync
+        if (window._FIREBASE_DB) return;
         syncWithCloud();
         const interval = setInterval(syncWithCloud, 3000);
-        const onVisibility = () => { if (!document.hidden) syncWithCloud(); };
-        window.addEventListener('focus', syncWithCloud);
-        document.addEventListener('visibilitychange', onVisibility);
-        const keepAlive = setInterval(() => {
-          fetch(`${API_BASE.replace('/api','')}/health`).catch(() =>
-            fetch(API_BASE+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'karthi@gmail.com',password:'karthi1234'})}).catch(()=>{})
-          );
-        }, 8*60*1000);
-        return () => {
-          clearInterval(interval);
-          clearInterval(keepAlive);
-          window.removeEventListener('focus', syncWithCloud);
-          document.removeEventListener('visibilitychange', onVisibility);
-        };
+        return () => clearInterval(interval);
       }, [syncWithCloud]);
 
 
@@ -1734,7 +1685,7 @@
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Select Past Date</label>
-                  <input type="date" onChange={e => { if (e.target.value) { const [y,m,d] = e.target.value.split('-'); setDate(`${d}/${m}/${y}`); } }} className="input-field" />
+                  <input type="date" onChange={e => { if (e.target.value) { const [y,m,d] = e.target.value.split('-'); setDate(`${d}/${m}/${y}`); } }} title="Pick past date" className="input-field" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Course</label>
@@ -2152,21 +2103,36 @@
         setNewD({ name: '', code: '', hod: '' });
       };
 
-      const [newC, setNewC] = useState({ name: '', code: '', department: 'Computer Science', credits: 4, faculty: '' });
-
-      const handleAddCourse = (e) => {
+      const [editingDept, setEditingDept] = useState(null);
+      const handleUpdateDepartment = (e) => {
         e.preventDefault();
-        if (!newC.name.trim() || !newC.code.trim()) return;
-        const courseData = {
-          ...newC,
-          code: newC.code.trim().toUpperCase(),
-          credits: Number(newC.credits) || 4,
-          faculty: newC.faculty || (facultyUsers[0] ? facultyUsers[0].id : 'fac-001')
+        if (!editingDept) return;
+        const updateData = {
+          name: editingDept.name.trim(),
+          code: (editingDept.code || '').trim().toUpperCase(),
+          hod: editingDept.hod || ''
         };
-        addCourse(courseData);
-        setCourseAddedNotice(`Course "${courseData.name}" (${courseData.code}) added successfully!`);
+        updateDepartment(editingDept.id || editingDept.name, updateData);
+        setDeptAddedNotice(`Department "${updateData.name}" updated successfully!`);
+        setTimeout(() => setDeptAddedNotice(''), 4000);
+        setEditingDept(null);
+      };
+
+      const [editingCourse, setEditingCourse] = useState(null);
+      const handleUpdateCourse = (e) => {
+        e.preventDefault();
+        if (!editingCourse) return;
+        const updateData = {
+          name: editingCourse.name.trim(),
+          code: (editingCourse.code || '').trim().toUpperCase(),
+          department: editingCourse.department,
+          credits: Number(editingCourse.credits) || 4,
+          faculty: editingCourse.faculty || ''
+        };
+        updateCourse(editingCourse.id, updateData);
+        setCourseAddedNotice(`Course "${updateData.name}" updated successfully!`);
         setTimeout(() => setCourseAddedNotice(''), 4000);
-        setNewC({ name: '', code: '', department: newC.department || 'Computer Science', credits: 4, faculty: '' });
+        setEditingCourse(null);
       };
 
       // PDF & Report Filter State
@@ -2973,17 +2939,26 @@
                               </div>
                             </td>
                             <td className="px-4 py-3 text-right">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm(`Are you sure you want to delete department "${d.name}"?`)) {
-                                    deleteDepartment(d.id || d.name);
-                                  }
-                                }}
-                                className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer"
-                              >
-                                🗑️ Remove
-                              </button>
+                              <div className="flex justify-end items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingDept(d)}
+                                  className="text-xs text-indigo-600 font-bold hover:text-indigo-800 transition-colors cursor-pointer px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200"
+                                >
+                                  ✏️ Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`Are you sure you want to delete department "${d.name}"?`)) {
+                                      deleteDepartment(d.id || d.name);
+                                    }
+                                  }}
+                                  className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer px-2 py-1 bg-red-50 hover:bg-red-100 rounded-lg border border-red-100"
+                                >
+                                  🗑️ Remove
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -2992,6 +2967,66 @@
                   </tbody>
                 </table></div>
               </div>
+
+              {/* Edit Department Modal Dialog */}
+              {editingDept && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setEditingDept(null)}>
+                  <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+                      <div>
+                        <h3 className="text-base sm:text-lg font-bold text-slate-800">✏️ Edit Department: {editingDept.name}</h3>
+                        <p className="text-xs text-slate-500">Update academic department details & HOD assignment</p>
+                      </div>
+                      <button onClick={() => setEditingDept(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 text-sm font-bold">✕</button>
+                    </div>
+
+                    <form onSubmit={handleUpdateDepartment} className="p-5 sm:p-6 space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Department Name *</label>
+                        <input
+                          type="text"
+                          value={editingDept.name}
+                          onChange={e => setEditingDept({ ...editingDept, name: e.target.value })}
+                          required
+                          className="input-field"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-purple-700 mb-1">Department Code *</label>
+                        <input
+                          type="text"
+                          value={editingDept.code || ''}
+                          onChange={e => setEditingDept({ ...editingDept, code: e.target.value.toUpperCase() })}
+                          required
+                          className="input-field font-mono font-bold border-purple-300"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Head of Department (HOD Name)</label>
+                        <input
+                          type="text"
+                          value={editingDept.hod || ''}
+                          onChange={e => setEditingDept({ ...editingDept, hod: e.target.value })}
+                          placeholder="e.g. Dr. K. Ramanathan, M.Sc., Ph.D."
+                          className="input-field"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button type="button" onClick={() => setEditingDept(null)} className="btn-secondary text-xs px-4 py-2">
+                          Cancel
+                        </button>
+                        <button type="submit" className="btn-primary text-xs px-6 py-2">
+                          💾 Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -3138,17 +3173,26 @@
                             )}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (confirm(`Are you sure you want to remove course "${c.name}" (${c.code || c.id})?`)) {
-                                  deleteCourse(c.id);
-                                }
-                              }}
-                              className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer"
-                            >
-                              🗑️ Remove
-                            </button>
+                            <div className="flex justify-end items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setEditingCourse(c)}
+                                className="text-xs text-indigo-600 font-bold hover:text-indigo-800 transition-colors cursor-pointer px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200"
+                              >
+                                ✏️ Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Are you sure you want to remove course "${c.name}" (${c.code || c.id})?`)) {
+                                    deleteCourse(c.id);
+                                  }
+                                }}
+                                className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer px-2 py-1 bg-red-50 hover:bg-red-100 rounded-lg border border-red-100"
+                              >
+                                🗑️ Remove
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -3156,6 +3200,101 @@
                   </tbody>
                 </table></div>
               </div>
+
+              {/* Edit Course Modal Dialog */}
+              {editingCourse && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setEditingCourse(null)}>
+                  <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+                      <div>
+                        <h3 className="text-base sm:text-lg font-bold text-slate-800">✏️ Edit Course: {editingCourse.name}</h3>
+                        <p className="text-xs text-slate-500">Update curriculum title, credits, department & instructor</p>
+                      </div>
+                      <button onClick={() => setEditingCourse(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 text-sm font-bold">✕</button>
+                    </div>
+
+                    <form onSubmit={handleUpdateCourse} className="p-5 sm:p-6 space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Course Title / Name *</label>
+                        <input
+                          type="text"
+                          value={editingCourse.name}
+                          onChange={e => setEditingCourse({ ...editingCourse, name: e.target.value })}
+                          required
+                          className="input-field"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-blue-700 mb-1">Course Code *</label>
+                          <input
+                            type="text"
+                            value={editingCourse.code || editingCourse.id || ''}
+                            onChange={e => setEditingCourse({ ...editingCourse, code: e.target.value.toUpperCase() })}
+                            required
+                            className="input-field font-mono font-bold border-blue-300"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Credits *</label>
+                          <select
+                            value={editingCourse.credits || 4}
+                            onChange={e => setEditingCourse({ ...editingCourse, credits: Number(e.target.value) })}
+                            className="input-field"
+                          >
+                            <option value={1}>1 Credit (Lab / Seminar)</option>
+                            <option value={2}>2 Credits</option>
+                            <option value={3}>3 Credits</option>
+                            <option value={4}>4 Credits (Core Theory)</option>
+                            <option value={5}>5 Credits</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Academic Department *</label>
+                        <select
+                          value={editingCourse.department}
+                          onChange={e => setEditingCourse({ ...editingCourse, department: e.target.value })}
+                          className="input-field"
+                        >
+                          {deptList.map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-emerald-700 mb-1">Assigned Faculty Instructor</label>
+                        <select
+                          value={editingCourse.faculty || ''}
+                          onChange={e => setEditingCourse({ ...editingCourse, faculty: e.target.value })}
+                          className="input-field border-emerald-300"
+                        >
+                          <option value="">-- Select Faculty Instructor --</option>
+                          {facultyUsers.map(f => (
+                            <option key={f.id} value={f.id}>
+                              {f.name} ({f.department} · {f.email})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button type="button" onClick={() => setEditingCourse(null)} className="btn-secondary text-xs px-4 py-2">
+                          Cancel
+                        </button>
+                        <button type="submit" className="btn-primary text-xs px-6 py-2">
+                          💾 Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
