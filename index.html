@@ -2122,21 +2122,56 @@
         setEditingUser(null);
       };
 
+      const [newC, setNewC] = useState({ name: '', code: '', department: 'Computer Science', credits: 4, faculty: '' });
+      const [editingCourse, setEditingCourse] = useState(null);
       const [courseAddedNotice, setCourseAddedNotice] = useState('');
       const [deptAddedNotice, setDeptAddedNotice] = useState('');
       const [settingsSavedNotice, setSettingsSavedNotice] = useState('');
-      const facultyUsers = useMemo(() => users.filter(u => u.role === 'faculty'), [users]);
-      
+
+      const facultyUsers = useMemo(() => (users || []).filter(u => u && u.role === 'faculty'), [users]);
+
+      const handleAddCourse = (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!newC || !newC.name || !newC.name.trim() || !newC.code || !newC.code.trim()) return;
+        const courseData = {
+          ...newC,
+          name: newC.name.trim(),
+          code: newC.code.trim().toUpperCase(),
+          credits: Number(newC.credits) || 4,
+          faculty: newC.faculty || (facultyUsers[0] ? facultyUsers[0].id : '')
+        };
+        if (typeof addCourse === 'function') addCourse(courseData);
+        setCourseAddedNotice(`Course "${courseData.name}" (${courseData.code}) added successfully!`);
+        setTimeout(() => setCourseAddedNotice(''), 4000);
+        setNewC({ name: '', code: '', department: newC.department || 'Computer Science', credits: 4, faculty: '' });
+      };
+
+      const handleUpdateCourse = (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!editingCourse) return;
+        const updateData = {
+          name: (editingCourse.name || '').trim(),
+          code: (editingCourse.code || editingCourse.id || '').trim().toUpperCase(),
+          department: editingCourse.department || 'Computer Science',
+          credits: Number(editingCourse.credits) || 4,
+          faculty: editingCourse.faculty || ''
+        };
+        if (typeof updateCourse === 'function') updateCourse(editingCourse.id, updateData);
+        setCourseAddedNotice(`Course "${updateData.name}" updated successfully!`);
+        setTimeout(() => setCourseAddedNotice(''), 4000);
+        setEditingCourse(null);
+      };
+
       const [newD, setNewD] = useState({ name: '', code: '', hod: '' });
       const handleAddDepartment = (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
         if (!newD.name.trim() || !newD.code.trim()) return;
         const deptData = {
           name: newD.name.trim(),
           code: newD.code.trim().toUpperCase(),
           hod: newD.hod || ''
         };
-        addDepartment(deptData);
+        if (typeof addDepartment === 'function') addDepartment(deptData);
         setDeptAddedNotice(`Department "${deptData.name}" (${deptData.code}) added successfully!`);
         setTimeout(() => setDeptAddedNotice(''), 4000);
         setNewD({ name: '', code: '', hod: '' });
@@ -2144,50 +2179,17 @@
 
       const [editingDept, setEditingDept] = useState(null);
       const handleUpdateDepartment = (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
         if (!editingDept) return;
         const updateData = {
-          name: editingDept.name.trim(),
+          name: (editingDept.name || '').trim(),
           code: (editingDept.code || '').trim().toUpperCase(),
           hod: editingDept.hod || ''
         };
-        updateDepartment(editingDept.id || editingDept.name, updateData);
+        if (typeof updateDepartment === 'function') updateDepartment(editingDept.id || editingDept.name, updateData);
         setDeptAddedNotice(`Department "${updateData.name}" updated successfully!`);
         setTimeout(() => setDeptAddedNotice(''), 4000);
         setEditingDept(null);
-      };
-
-      const [newC, setNewC] = useState({ name: '', code: '', department: 'Computer Science', credits: 4, faculty: '' });
-      const handleAddCourse = (e) => {
-        e.preventDefault();
-        if (!newC.name.trim() || !newC.code.trim()) return;
-        const courseData = {
-          ...newC,
-          code: newC.code.trim().toUpperCase(),
-          credits: Number(newC.credits) || 4,
-          faculty: newC.faculty || (facultyUsers[0] ? facultyUsers[0].id : 'fac-001')
-        };
-        addCourse(courseData);
-        setCourseAddedNotice(`Course "${courseData.name}" (${courseData.code}) added successfully!`);
-        setTimeout(() => setCourseAddedNotice(''), 4000);
-        setNewC({ name: '', code: '', department: newC.department || 'Computer Science', credits: 4, faculty: '' });
-      };
-
-      const [editingCourse, setEditingCourse] = useState(null);
-      const handleUpdateCourse = (e) => {
-        e.preventDefault();
-        if (!editingCourse) return;
-        const updateData = {
-          name: editingCourse.name.trim(),
-          code: (editingCourse.code || '').trim().toUpperCase(),
-          department: editingCourse.department,
-          credits: Number(editingCourse.credits) || 4,
-          faculty: editingCourse.faculty || ''
-        };
-        updateCourse(editingCourse.id, updateData);
-        setCourseAddedNotice(`Course "${updateData.name}" updated successfully!`);
-        setTimeout(() => setCourseAddedNotice(''), 4000);
-        setEditingCourse(null);
       };
 
       // PDF & Report Filter State
