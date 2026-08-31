@@ -108,7 +108,8 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Date of Birth (DOB)</label>
-                  <input type="date" value={dob} onChange={e => setDob(e.target.value)} required
+                  <input type="text" value={dob} onChange={e => setDob(e.target.value)} required
+                    placeholder="DD/MM/YYYY"
                     className="w-full bg-white/5 border border-white/10 text-white placeholder:text-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all" />
                 </div>
               </>

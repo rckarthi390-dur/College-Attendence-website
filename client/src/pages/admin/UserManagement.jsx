@@ -3,6 +3,24 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { SearchBar, SelectField, PageHeader, EmptyState, Modal, ConfirmDialog } from '../../components/ui';
 
+const formatDateDMY = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+};
+
+const formatDateYMD = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr;
+};
+
 export default function UserManagement() {
   const { getUsers, addUser, updateUser, deleteUser, getDepartments } = useApp();
   const { toast } = useToast();
@@ -55,7 +73,7 @@ export default function UserManagement() {
       role: 'student',
       department: departments[0]?.name || 'Computer Science',
       rollNumber: '',
-      dob: '2004-01-01',
+      dob: '01/01/2004',
       employeeId: '',
       section: 'A',
       year: 3,
@@ -73,7 +91,7 @@ export default function UserManagement() {
       role: user.role || 'student',
       department: user.department || '',
       rollNumber: user.rollNumber || '',
-      dob: user.dob || '2004-01-01',
+      dob: formatDateDMY(user.dob || '2004-01-01'),
       employeeId: user.employeeId || '',
       section: user.section || 'A',
       year: user.year || 3,
@@ -89,14 +107,25 @@ export default function UserManagement() {
       return;
     }
 
+    if (formData.role === 'student' && formData.dob) {
+      const parts = formData.dob.split('/');
+      if (parts.length !== 3 || parts[0].length !== 2 || parts[1].length !== 2 || parts[2].length !== 4) {
+        toast.warning('Date of Birth must be in DD/MM/YYYY format.');
+        return;
+      }
+    }
+
     try {
+      const payload = {
+        ...formData,
+        dob: formData.role === 'student' ? formatDateYMD(formData.dob) : ''
+      };
       if (editingUser) {
-        const updatePayload = { ...formData };
-        if (!updatePayload.password) delete updatePayload.password;
-        updateUser(editingUser.id, updatePayload);
+        if (!payload.password) delete payload.password;
+        updateUser(editingUser.id, payload);
         toast.success(`User "${formData.name}" updated!`);
       } else {
-        addUser(formData);
+        addUser(payload);
         toast.success(`User "${formData.name}" created!`);
       }
       setModalOpen(false);
@@ -297,9 +326,10 @@ export default function UserManagement() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Date of Birth (DOB) *</label>
                 <input
-                  type="date"
-                  value={formData.dob || '2004-01-01'}
+                  type="text"
+                  value={formData.dob || ''}
                   onChange={e => setFormData({ ...formData, dob: e.target.value })}
+                  placeholder="DD/MM/YYYY"
                   required
                   className="input-field"
                 />

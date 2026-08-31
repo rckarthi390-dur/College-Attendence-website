@@ -3,6 +3,22 @@ import { loadDB } from '../data/seedData';
 
 const AuthContext = createContext(null);
 
+const normalizeToYMD = (dateStr) => {
+  if (!dateStr) return '';
+  const clean = dateStr.replace(/\s/g, '');
+  if (clean.includes('-')) {
+    const parts = clean.split('-');
+    if (parts[0].length === 4) return clean; // YYYY-MM-DD
+    return `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
+  }
+  if (clean.includes('/')) {
+    const parts = clean.split('/');
+    if (parts[2].length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`; // DD/MM/YYYY
+    return `${parts[0]}-${parts[1]}-${parts[2]}`; // YYYY/MM/DD
+  }
+  return dateStr;
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
@@ -30,8 +46,8 @@ export function AuthProvider({ children }) {
     );
     if (!found) throw new Error(`Student with Roll Number "${rollNumber}" not found.`);
     
-    const storedDob = (found.dob || '').replace(/\D/g, '');
-    const inputDob = (dob || '').replace(/\D/g, '');
+    const storedDob = normalizeToYMD(found.dob || '');
+    const inputDob = normalizeToYMD(dob || '');
     if (storedDob && inputDob && storedDob !== inputDob) {
       throw new Error('Incorrect Date of Birth.');
     }
