@@ -33,6 +33,9 @@
   <!-- jsPDF & AutoTable for PDF Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- Firebase Realtime Database — Real-time multi-device sync -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <style>
     /* ── Ambient Mesh Gradient & Typography ── */
     body {
@@ -373,6 +376,34 @@
 </head>
 <body>
   <div id="root"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       FIREBASE CONFIG — Paste your Firebase project config below.
+       Steps: console.firebase.google.com → Project → Web App → Copy config
+               → Build → Realtime Database → Create (Test mode)
+       ══════════════════════════════════════════════════════════════════ -->
+  <script>
+    window._FB_CONFIG = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    window._FIREBASE_DB = null;
+    window._FB_PATH = 'gtn_college_attendance';
+    try {
+      if (window._FB_CONFIG.apiKey && !window._FB_CONFIG.apiKey.includes('YOUR_')) {
+        firebase.initializeApp(window._FB_CONFIG);
+        window._FIREBASE_DB = firebase.database();
+        console.log('🔥 Firebase connected — real-time sync active');
+      } else {
+        console.warn('⚠️ Firebase not configured. Paste your config in index.html');
+      }
+    } catch(e) { console.warn('Firebase init error:', e.message); }
+  </script>
 
   <script type="text/babel">
     const { useState, useEffect, useMemo, useCallback, createContext, useContext } = React;
@@ -719,25 +750,118 @@
       const [isSyncing, setIsSyncing] = useState(false);
       const [lastSync, setLastSync] = useState(null);
 
+      // Unique per-tab ID to prevent Firebase listener loop
+      const DEVICE_ID = React.useRef(Math.random().toString(36).slice(2, 10)).current;
+      const isApplyingFirebase = React.useRef(false);
+      const fbWriteTimer = React.useRef(null);
+
+      // Write full db snapshot to Firebase (debounced 600ms)
+      const pushToFirebase = useCallback((dbSnap) => {
+        if (!window._FIREBASE_DB || isApplyingFirebase.current) return;
+        clearTimeout(fbWriteTimer.current);
+        fbWriteTimer.current = setTimeout(() => {
+          const payload = {
+            users: (dbSnap.users || []).filter(u =>
+              !DEMO_USER_IDS.includes(u.id) &&
+              !(u.email && DEMO_EMAILS.includes(u.email.toLowerCase()))
+            ),
+            attendance: dbSnap.attendance || [],
+            courses: dbSnap.courses || [],
+            departments: dbSnap.departments || [],
+            leaves: dbSnap.leaves || [],
+            settings: dbSnap.settings || {},
+            _device: DEVICE_ID,
+            _ts: Date.now()
+          };
+          window._FIREBASE_DB.ref(window._FB_PATH).set(payload)
+            .catch(e => console.warn('Firebase write error:', e));
+        }, 600);
+      }, [DEVICE_ID]);
+
       const updateDB = useCallback((updater) => {
         setDb(prev => {
           const next = updater(JSON.parse(JSON.stringify(prev)));
           saveDB(next);
+          pushToFirebase(next);
           return next;
         });
-      }, []);
+      }, [pushToFirebase]);
 
-      // Pull latest cloud data across all devices with non-destructive merge
+      // ── Firebase Real-time Listener ─────────────────────────────────────
+      useEffect(() => {
+        if (!window._FIREBASE_DB) return; // Firebase not configured, skip
+
+        setIsSyncing(true);
+        const fbRef = window._FIREBASE_DB.ref(window._FB_PATH);
+
+        fbRef.on('value', (snapshot) => {
+          const data = snapshot.val();
+          setLastSync(new Date());
+          setIsSyncing(false);
+
+          if (!data) {
+            // Firebase empty — seed it with current local data
+            setDb(current => { pushToFirebase(current); return current; });
+            return;
+          }
+
+          // Skip updates written by THIS device (prevents loop)
+          if (data._device === DEVICE_ID) return;
+
+          // Apply remote update from another device
+          isApplyingFirebase.current = true;
+          setDb(current => {
+            const next = JSON.parse(JSON.stringify(current));
+
+            // Users: add new, update existing, remove deleted
+            if (Array.isArray(data.users)) {
+              const fbIds = new Set(data.users.map(u => u.id));
+              // Remove users deleted from another device (keep admin + local-only)
+              next.users = next.users.filter(u => {
+                if (u.id === 'admin-karthi') return true;
+                if (DEMO_USER_IDS.includes(u.id)) return false;
+                if (u.email && DEMO_EMAILS.includes(u.email.toLowerCase())) return false;
+                return fbIds.has(u.id);
+              });
+              // Add / update from Firebase
+              data.users.forEach(fu => {
+                if (DEMO_USER_IDS.includes(fu.id)) return;
+                if (fu.email && DEMO_EMAILS.includes(fu.email.toLowerCase())) return;
+                const idx = next.users.findIndex(u => u.id === fu.id);
+                if (idx >= 0) {
+                  next.users[idx] = { ...next.users[idx], ...fu };
+                } else {
+                  next.users.push(fu);
+                }
+              });
+            }
+
+            if (Array.isArray(data.attendance)) next.attendance = data.attendance;
+            if (Array.isArray(data.courses) && data.courses.length > 0) next.courses = data.courses;
+            if (Array.isArray(data.departments) && data.departments.length > 0) next.departments = data.departments;
+            if (Array.isArray(data.leaves)) next.leaves = data.leaves;
+            if (data.settings) next.settings = { ...next.settings, ...data.settings };
+
+            saveDB(next);
+            isApplyingFirebase.current = false;
+            return next;
+          });
+        });
+
+        return () => {
+          fbRef.off();
+          clearTimeout(fbWriteTimer.current);
+        };
+      }, [DEVICE_ID, pushToFirebase]);
+
+      // ── Fallback: Render backend polling (only if Firebase NOT configured) ──
       const syncWithCloud = useCallback(async () => {
+        if (window._FIREBASE_DB) return; // Firebase active — skip
         try {
           setIsSyncing(true);
           const token = await getOrFetchCloudToken('admin');
-          if (!token) {
-            setIsSyncing(false);
-            return;
-          }
+          if (!token) { setIsSyncing(false); return; }
           const headers = { 'Authorization': `Bearer ${token}` };
-
           const [usersRes, deptsRes, coursesRes, leavesRes, settingsRes, attRes] = await Promise.allSettled([
             fetch(`${API_BASE}/users`, { headers }),
             fetch(`${API_BASE}/departments`, { headers }),
@@ -746,10 +870,7 @@
             fetch(`${API_BASE}/settings`, { headers }),
             fetch(`${API_BASE}/attendance`, { headers })
           ]);
-
-          // Safe non-destructive merge
           updateDB(d => {
-            // 1. Merge users — safely add new cloud users, update existing ones
             if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
               usersRes.value.json().then(cloudUsers => {
                 if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
@@ -759,124 +880,34 @@
                       if (DEMO_USER_IDS.includes(cu.id)) return;
                       if (cu.email && DEMO_EMAILS.includes(cu.email.toLowerCase())) return;
                       const idx = current.users.findIndex(u => u.id === cu.id);
-                      if (idx >= 0) {
-                        // Update existing user details (name, dob, section etc.)
-                        current.users[idx] = { ...current.users[idx], ...cu };
-                      } else if (!localIds.has(cu.id)) {
-                        // Add brand new user from cloud
-                        current.users.push(cu);
-                        localIds.add(cu.id);
-                      }
+                      if (idx >= 0) { current.users[idx] = { ...current.users[idx], ...cu }; }
+                      else if (!localIds.has(cu.id)) { current.users.push(cu); localIds.add(cu.id); }
                     });
                     return current;
                   });
                 }
               }).catch(() => {});
             }
-
-            // 2. Merge departments
-            if (deptsRes.status === 'fulfilled' && deptsRes.value.ok) {
-              deptsRes.value.json().then(cloudDepts => {
-                if (Array.isArray(cloudDepts)) {
-                  updateDB(current => {
-                    if (!Array.isArray(current.departments)) current.departments = [];
-                    const deptNames = new Set(current.departments.map(x => x.name.toLowerCase()));
-                    cloudDepts.forEach(cd => {
-                      if (!deptNames.has(cd.name.toLowerCase())) {
-                        current.departments.push(cd);
-                        deptNames.add(cd.name.toLowerCase());
-                      }
-                    });
-                    return current;
-                  });
-                }
-              }).catch(() => {});
-            }
-
-            // 3. Merge courses
-            if (coursesRes.status === 'fulfilled' && coursesRes.value.ok) {
-              coursesRes.value.json().then(cloudCourses => {
-                if (Array.isArray(cloudCourses)) {
-                  updateDB(current => {
-                    if (!Array.isArray(current.courses)) current.courses = [];
-                    const courseCodes = new Set(current.courses.map(c => (c.code || c.id || '').toUpperCase()));
-                    cloudCourses.forEach(cc => {
-                      const code = (cc.code || cc.id || '').toUpperCase();
-                      if (code && !courseCodes.has(code)) {
-                        current.courses.push(cc);
-                        courseCodes.add(code);
-                      }
-                    });
-                    return current;
-                  });
-                }
-              }).catch(() => {});
-            }
-
-            // 4. Merge attendance
-            if (attRes.status === 'fulfilled' && attRes.value.ok) {
-              attRes.value.json().then(cloudAtt => {
-                if (Array.isArray(cloudAtt)) {
-                  updateDB(current => {
-                    if (!Array.isArray(current.attendance)) current.attendance = [];
-                    const attKeys = new Set(current.attendance.map(a => `${a.studentId}_${a.courseId}_${a.date}`));
-                    cloudAtt.forEach(ca => {
-                      const key = `${ca.studentId}_${ca.courseId}_${ca.date}`;
-                      if (!attKeys.has(key)) {
-                        current.attendance.push(ca);
-                        attKeys.add(key);
-                      }
-                    });
-                    return current;
-                  });
-                }
-              }).catch(() => {});
-            }
-
-            // 5. Merge settings
-            if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
-              settingsRes.value.json().then(cloudSettings => {
-                if (cloudSettings && cloudSettings.institutionName) {
-                  updateDB(current => {
-                    current.settings = { ...current.settings, ...cloudSettings };
-                    return current;
-                  });
-                }
-              }).catch(() => {});
-            }
-
             return d;
           });
-
           setLastSync(new Date());
         } catch (err) {
-          console.warn('Cloud sync background error:', err);
-        } finally {
-          setIsSyncing(false);
-        }
+          console.warn('Render sync error:', err);
+        } finally { setIsSyncing(false); }
       }, [updateDB]);
 
-      // Auto-sync periodically, on tab focus & on visibility change (instant multi-device sync)
       useEffect(() => {
+        if (window._FIREBASE_DB) return; // Firebase handles sync
         syncWithCloud();
-        const interval = setInterval(syncWithCloud, 3000); // pull every 3 seconds
-        const onVisibility = () => {
-          if (!document.hidden) syncWithCloud();
-        };
+        const interval = setInterval(syncWithCloud, 3000);
+        const onVisibility = () => { if (!document.hidden) syncWithCloud(); };
         window.addEventListener('focus', syncWithCloud);
         document.addEventListener('visibilitychange', onVisibility);
-
-        // Keep Render server awake — ping every 8 minutes to prevent free-tier sleep
         const keepAlive = setInterval(() => {
-          fetch(`${API_BASE.replace('/api', '')}/health`).catch(() =>
-            fetch(API_BASE + '/auth/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: 'karthi@gmail.com', password: 'karthi1234' })
-            }).catch(() => {})
+          fetch(`${API_BASE.replace('/api','')}/health`).catch(() =>
+            fetch(API_BASE+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'karthi@gmail.com',password:'karthi1234'})}).catch(()=>{})
           );
-        }, 8 * 60 * 1000);
-
+        }, 8*60*1000);
         return () => {
           clearInterval(interval);
           clearInterval(keepAlive);
@@ -884,6 +915,7 @@
           document.removeEventListener('visibilitychange', onVisibility);
         };
       }, [syncWithCloud]);
+
 
       // Users
       const getUsers = (f = {}) => {
