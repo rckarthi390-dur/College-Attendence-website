@@ -497,13 +497,23 @@
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed && Array.isArray(parsed.users)) {
-            // Remove only dummy demo accounts
+          if (parsed && typeof parsed === 'object') {
+            if (!Array.isArray(parsed.users)) parsed.users = [];
+            if (!Array.isArray(parsed.courses)) parsed.courses = JSON.parse(JSON.stringify(SEED_DATA.courses || []));
+            if (!Array.isArray(parsed.departments)) parsed.departments = JSON.parse(JSON.stringify(SEED_DATA.departments || []));
+            if (!Array.isArray(parsed.attendance)) parsed.attendance = [];
+            if (!Array.isArray(parsed.leaves)) parsed.leaves = [];
+            if (!Array.isArray(parsed.auditLog)) parsed.auditLog = [];
+            if (!parsed.settings || typeof parsed.settings !== 'object') parsed.settings = JSON.parse(JSON.stringify(SEED_DATA.settings));
+
+            // Filter out dummy demo users
             parsed.users = parsed.users.filter(u => {
+              if (!u) return false;
               if (DEMO_USER_IDS.includes(u.id)) return false;
               if (u.email && DEMO_EMAILS.includes(u.email.toLowerCase())) return false;
               return true;
             });
+
             // Ensure primary Admin Karthi exists
             const karthiAdmin = { id: "admin-karthi", name: "karthi", email: "karthi@gmail.com", password: "karthi1234", role: "admin", department: "Administration", phone: "9876543219" };
             const karthiIdx = parsed.users.findIndex(u => u.id === 'admin-karthi' && u.role === 'admin');
@@ -512,18 +522,18 @@
             } else {
               parsed.users[karthiIdx] = { ...parsed.users[karthiIdx], ...karthiAdmin };
             }
-            if (Array.isArray(parsed.departments)) {
-              parsed.departments = parsed.departments.filter(d => d.name !== 'Administration');
-            }
-            if (parsed.settings) {
-              parsed.settings.institutionName = "G.T.N. Arts College";
-              delete parsed.settings.estdYear;
-            }
+
+            parsed.departments = parsed.departments.filter(d => d && d.name !== 'Administration');
+            parsed.settings.institutionName = "G.T.N. Arts College";
+            delete parsed.settings.estdYear;
+
             localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
             return parsed;
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('loadDB error fallback to SEED_DATA:', e);
+      }
       const initial = JSON.parse(JSON.stringify(SEED_DATA));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
       return initial;
@@ -3638,12 +3648,51 @@
       );
     }
 
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      componentDidCatch(error, errorInfo) {
+        console.error('ErrorBoundary caught:', error, errorInfo);
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 text-center font-sans">
+              <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md border border-slate-200">
+                <div className="text-4xl mb-3">🛠️</div>
+                <h2 className="text-lg font-bold text-slate-800 mb-2">Portal Data Repair Required</h2>
+                <p className="text-xs text-slate-500 mb-4">Old database memory detected. Click below to repair database and load portal.</p>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('college_attendance_db');
+                    sessionStorage.clear();
+                    window.location.reload(true);
+                  }}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition-all"
+                >
+                  ⚡ Repair Database & Load Portal
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
     ReactDOM.createRoot(document.getElementById('root')).render(
-      <AuthProvider>
-        <AppProvider>
-          <App />
-        </AppProvider>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <AppProvider>
+            <App />
+          </AppProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     );
   </script>
 </body>
