@@ -121,7 +121,6 @@ export default function StudentDashboard() {
       {/* Mode-specific content */}
       {activeMode === 'period' ? (
         <div className="mb-8">
-          <h2 className="text-base font-bold text-slate-800 mb-4">📚 Subject-wise Breakdown</h2>
           {stats.length === 0 ? (
             <EmptyState icon="📭" title="No attendance records yet" desc="Your attendance will appear here once your faculty marks it." />
           ) : (
