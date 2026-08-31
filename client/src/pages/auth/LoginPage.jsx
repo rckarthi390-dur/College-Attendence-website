@@ -119,28 +119,6 @@ export default function LoginPage() {
               {loading ? 'Verifying...' : 'Sign In →'}
             </button>
           </form>
-
-          {/* Quick fill buttons (Helper) */}
-          <div className="mt-6 border-t border-white/10 pt-4">
-            <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-2.5 text-center">Quick Fill Demo Accounts</p>
-            <div className="flex flex-wrap gap-1.5 justify-center">
-              <button type="button"
-                onClick={() => { setActiveTab('staff'); setEmail('karthi@gmail.com'); setPassword('karthi1234'); }}
-                className="text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                🛡️ Admin
-              </button>
-              <button type="button"
-                onClick={() => { setActiveTab('staff'); setEmail('anand@college.edu'); setPassword('password'); }}
-                className="text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                👨‍🏫 Faculty
-              </button>
-              <button type="button"
-                onClick={() => { setActiveTab('student'); setRollNumber('CS21001'); setDob('2004-01-01'); }}
-                className="text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                🎓 Student
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
