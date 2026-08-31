@@ -27,12 +27,31 @@ app.use('/api/leaves', leavesRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/settings', settingsRoutes);
 
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'College Attendance API Server Running', timestamp: new Date().toISOString() });
-});
-
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'College Attendance API running', timestamp: new Date().toISOString() });
+});
+
+// Serve static frontend web app for all non-API requests
+const fs = require('fs');
+const rootIndexPath = path.join(__dirname, '../index.html');
+const clientDistPath = path.join(__dirname, '../client/dist');
+
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+}
+app.use(express.static(path.join(__dirname, '..')));
+
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  if (fs.existsSync(rootIndexPath)) {
+    return res.sendFile(rootIndexPath);
+  }
+  if (fs.existsSync(path.join(clientDistPath, 'index.html'))) {
+    return res.sendFile(path.join(clientDistPath, 'index.html'));
+  }
+  res.send('College Attendance Portal Server Running');
 });
 
 app.listen(PORT, () => {
