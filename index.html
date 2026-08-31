@@ -3093,7 +3093,7 @@
                   <p className="text-xs text-slate-500">Create new courses, set academic credits, and assign faculty instructors</p>
                 </div>
                 <span className="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-200">
-                  {courses.length} Active Courses
+                  {(courses || []).length} Active Courses
                 </span>
               </div>
 
@@ -3118,7 +3118,7 @@
                     <input
                       type="text"
                       placeholder="e.g. Cloud Computing Architecture"
-                      value={newC.name}
+                      value={(newC && newC.name) || ''}
                       onChange={e => setNewC({...newC, name: e.target.value})}
                       required
                       className="input-field bg-white"
@@ -3130,7 +3130,7 @@
                     <input
                       type="text"
                       placeholder="e.g. CS402 or EC305"
-                      value={newC.code}
+                      value={(newC && newC.code) || ''}
                       onChange={e => setNewC({...newC, code: e.target.value.toUpperCase()})}
                       required
                       className="input-field bg-white border-blue-300 focus:border-blue-500 font-mono font-bold"
@@ -3140,11 +3140,11 @@
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">Academic Department *</label>
                     <select
-                      value={newC.department}
+                      value={(newC && newC.department) || (deptList && deptList[0]) || 'Computer Science'}
                       onChange={e => setNewC({...newC, department: e.target.value})}
                       className="input-field bg-white"
                     >
-                      {deptList.map(d => (
+                      {(deptList || ['Computer Science', 'Electronics']).map(d => (
                         <option key={d} value={d}>{d}</option>
                       ))}
                     </select>
@@ -3153,7 +3153,7 @@
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">Course Credits *</label>
                     <select
-                      value={newC.credits}
+                      value={(newC && newC.credits) || 4}
                       onChange={e => setNewC({...newC, credits: Number(e.target.value)})}
                       className="input-field bg-white"
                     >
@@ -3168,13 +3168,13 @@
                   <div className="sm:col-span-2">
                     <label className="block text-[11px] font-bold text-emerald-700 mb-1">Assigned Faculty Instructor *</label>
                     <select
-                      value={newC.faculty}
+                      value={(newC && newC.faculty) || ''}
                       onChange={e => setNewC({...newC, faculty: e.target.value})}
                       className="input-field bg-white border-emerald-300 focus:border-emerald-500"
                     >
                       <option value="">-- Select Faculty Instructor --</option>
-                      {facultyUsers.map(f => (
-                        <option key={f.id} value={f.id}>
+                      {(facultyUsers || []).map(f => (
+                        <option key={f.id || f.email} value={f.id}>
                           {f.name} ({f.department} · {f.email})
                         </option>
                       ))}
@@ -3191,7 +3191,7 @@
 
               {/* Existing Courses Table */}
               <div>
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Institutional Courses ({courses.length})</h4>
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Institutional Courses ({(courses || []).length})</h4>
                 <div className="table-wrap"><table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>
@@ -3204,54 +3204,63 @@
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {courses.map(c => {
-                      const instructor = users.find(u => u.id === c.faculty);
-                      return (
-                        <tr key={c.id} className="table-row">
-                          <td className="px-4 py-3 text-xs font-mono font-bold text-blue-700">
-                            <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">
-                              {c.code || c.id}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm font-bold text-slate-800">{c.name}</td>
-                          <td className="px-4 py-3 text-xs text-slate-600 font-medium">{c.department}</td>
-                          <td className="px-4 py-3 text-xs text-center font-bold text-slate-700">
-                            <span className="bg-slate-100 px-2 py-0.5 rounded text-[11px]">{c.credits || 4} Cr</span>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-slate-700">
-                            {instructor ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-emerald-700 font-bold">👨‍🏫 {instructor.name}</span>
+                    {(courses || []).length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="px-4 py-8 text-center text-xs text-slate-400">
+                          No courses added yet. Create one using the form above!
+                        </td>
+                      </tr>
+                    ) : (
+                      (courses || []).map((c, idx) => {
+                        if (!c) return null;
+                        const instructor = (users || []).find(u => u && u.id === c.faculty);
+                        return (
+                          <tr key={c.id || c.code || idx} className="table-row">
+                            <td className="px-4 py-3 text-xs font-mono font-bold text-blue-700">
+                              <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">
+                                {c.code || c.id || 'CRS'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-bold text-slate-800">{c.name || 'Unnamed Course'}</td>
+                            <td className="px-4 py-3 text-xs text-slate-600 font-medium">{c.department || 'General'}</td>
+                            <td className="px-4 py-3 text-xs text-center font-bold text-slate-700">
+                              <span className="bg-slate-100 px-2 py-0.5 rounded text-[11px]">{c.credits || 4} Cr</span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-slate-700">
+                              {instructor ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-emerald-700 font-bold">👨‍🏫 {instructor.name}</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic">Unassigned</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex justify-end items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingCourse(c)}
+                                  className="text-xs text-indigo-600 font-bold hover:text-indigo-800 transition-colors cursor-pointer px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200"
+                                >
+                                  ✏️ Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`Are you sure you want to remove course "${c.name || ''}" (${c.code || c.id})?`)) {
+                                      deleteCourse(c.id);
+                                    }
+                                  }}
+                                  className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer px-2 py-1 bg-red-50 hover:bg-red-100 rounded-lg border border-red-100"
+                                >
+                                  🗑️ Remove
+                                </button>
                               </div>
-                            ) : (
-                              <span className="text-slate-400 italic">Unassigned</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex justify-end items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setEditingCourse(c)}
-                                className="text-xs text-indigo-600 font-bold hover:text-indigo-800 transition-colors cursor-pointer px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200"
-                              >
-                                ✏️ Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm(`Are you sure you want to remove course "${c.name}" (${c.code || c.id})?`)) {
-                                    deleteCourse(c.id);
-                                  }
-                                }}
-                                className="text-xs text-red-600 font-bold hover:text-red-800 transition-colors cursor-pointer px-2 py-1 bg-red-50 hover:bg-red-100 rounded-lg border border-red-100"
-                              >
-                                🗑️ Remove
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table></div>
               </div>
@@ -3263,7 +3272,7 @@
                   <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
                       <div>
-                        <h3 className="text-base sm:text-lg font-bold text-slate-800">✏️ Edit Course: {editingCourse.name}</h3>
+                        <h3 className="text-base sm:text-lg font-bold text-slate-800">✏️ Edit Course: {editingCourse.name || ''}</h3>
                         <p className="text-xs text-slate-500">Update curriculum title, credits, department & instructor</p>
                       </div>
                       <button onClick={() => setEditingCourse(null)} className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 text-sm font-bold">✕</button>
@@ -3274,7 +3283,7 @@
                         <label className="block text-xs font-bold text-slate-700 mb-1">Course Title / Name *</label>
                         <input
                           type="text"
-                          value={editingCourse.name}
+                          value={editingCourse.name || ''}
                           onChange={e => setEditingCourse({ ...editingCourse, name: e.target.value })}
                           required
                           className="input-field"
@@ -3312,11 +3321,11 @@
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">Academic Department *</label>
                         <select
-                          value={editingCourse.department}
+                          value={editingCourse.department || (deptList && deptList[0]) || 'Computer Science'}
                           onChange={e => setEditingCourse({ ...editingCourse, department: e.target.value })}
                           className="input-field"
                         >
-                          {deptList.map(d => (
+                          {(deptList || ['Computer Science', 'Electronics']).map(d => (
                             <option key={d} value={d}>{d}</option>
                           ))}
                         </select>
@@ -3330,8 +3339,8 @@
                           className="input-field border-emerald-300"
                         >
                           <option value="">-- Select Faculty Instructor --</option>
-                          {facultyUsers.map(f => (
-                            <option key={f.id} value={f.id}>
+                          {(facultyUsers || []).map(f => (
+                            <option key={f.id || f.email} value={f.id}>
                               {f.name} ({f.department} · {f.email})
                             </option>
                           ))}
