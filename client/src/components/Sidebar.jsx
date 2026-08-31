@@ -131,8 +131,8 @@ export default function Sidebar({ activeTab, onTabChange }) {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-white/10 text-white rounded-lg">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-white/10 text-white rounded-lg max-w-[70px] sm:max-w-none truncate">
             {user?.name?.split(' ')[0]}
           </span>
           <button

@@ -102,7 +102,7 @@ export default function MarkAttendance() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5 mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-2">
           <SelectField label="Attendance Mode" value={attendanceType} onChange={v => { setAttendanceType(v); setLoaded(false); }}
             options={[{ value: 'daily', label: 'Daily (Day Work)' }, { value: 'period', label: 'Period-wise' }]} required />
           <SelectField label="Department" value={dept} onChange={v => { setDept(v); setCourseId(''); setSection(''); setLoaded(false); }}
@@ -178,7 +178,7 @@ export default function MarkAttendance() {
                       <td className="px-4 py-3 text-xs sm:text-sm text-slate-400">{i + 1}</td>
                       <td className="px-4 py-3 text-xs sm:text-sm font-mono font-medium text-slate-600">{s.rollNumber}</td>
                       <td className="px-4 py-3 text-xs sm:text-sm font-medium text-slate-800">{s.name}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                           {STATUS_OPTIONS.map(st => (
                             <button key={st}
