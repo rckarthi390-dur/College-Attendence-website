@@ -4,6 +4,12 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { StatusBadge, EmptyState, PageHeader } from '../../components/ui';
 
+const formatDateDMY = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 export default function LeaveApplication() {
   const { user } = useAuth();
   const { getLeaves, addLeave, deleteLeave } = useApp();
@@ -159,10 +165,10 @@ export default function LeaveApplication() {
                       </div>
                       <p className="text-sm font-semibold text-slate-800 mt-2">{l.reason}</p>
                       <p className="text-xs text-slate-500 mt-1">
-                        📅 {l.fromDate} → {l.toDate}
+                        📅 {formatDateDMY(l.fromDate)} → {formatDateDMY(l.toDate)}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Applied on: {new Date(l.appliedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        Applied on: {formatDateDMY(l.appliedAt.slice(0, 10))}
                       </p>
                     </div>
 

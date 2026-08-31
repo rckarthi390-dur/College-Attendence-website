@@ -13,6 +13,12 @@ const STATUS_COLORS = {
 };
 const STATUS_LABELS = { 'on-duty': 'OD', present: 'P', absent: 'A', late: 'L' };
 
+const formatDateDMY = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 export default function MarkAttendance() {
   const { user } = useAuth();
   const { getCourses, getDepartments, getRoster, saveAttendanceSession } = useApp();
@@ -130,7 +136,7 @@ export default function MarkAttendance() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-slate-800">
-                  {attendanceType === 'daily' ? 'Day Work Attendance' : `${courseName} (Period ${period})`} · Section {section} · {new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                  {attendanceType === 'daily' ? 'Day Work Attendance' : `${courseName} (Period ${period})`} · Section {section} · {formatDateDMY(date)}
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">{roster.length} students total</p>
               </div>

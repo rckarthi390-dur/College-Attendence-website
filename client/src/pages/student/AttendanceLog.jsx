@@ -3,6 +3,12 @@ import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge, SearchBar, SelectField, EmptyState, PageHeader, TabNav } from '../../components/ui';
 
+const formatDateDMY = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 export default function AttendanceLog() {
   const { user } = useAuth();
   const { getStudentAttendanceSummary, getCourses } = useApp();
@@ -117,12 +123,7 @@ export default function AttendanceLog() {
                 {filteredRecords.map(r => (
                   <tr key={r.id} className="table-row">
                     <td className="px-5 py-3.5 whitespace-nowrap text-sm font-medium text-slate-700">
-                      {new Date(r.date + 'T00:00:00').toLocaleDateString('en-IN', {
-                        weekday: 'short',
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
+                      {formatDateDMY(r.date)}
                     </td>
                     <td className="px-5 py-3.5">
                       <p className="text-sm font-semibold text-slate-800">{r.courseName}</p>

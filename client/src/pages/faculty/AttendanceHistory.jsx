@@ -13,6 +13,12 @@ const STATUS_COLORS = {
 };
 const STATUS_LABELS = { 'on-duty': 'OD', present: 'P', absent: 'A', late: 'L' };
 
+const formatDateDMY = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 export default function AttendanceHistory() {
   const { user } = useAuth();
   const { getCourses, getDepartments, getAttendance, getRoster, saveAttendanceSession } = useApp();
@@ -93,7 +99,7 @@ export default function AttendanceHistory() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <SelectField label="Attendance Mode" value={attendanceType} onChange={v => { setAttendanceType(v); setLoaded(false); setDate(''); }}
             options={[{ value: 'daily', label: 'Daily (Day Work)' }, { value: 'period', label: 'Period-wise' }]} required />
           <SelectField label="Department" value={dept} onChange={v => { setDept(v); setCourseId(''); setLoaded(false); }}
@@ -113,7 +119,7 @@ export default function AttendanceHistory() {
             <select value={date} onChange={e => { setDate(e.target.value); setLoaded(false); }} className="input-field">
               <option value="">Select date</option>
               {datesWithData.map(d => (
-                <option key={d} value={d}>{new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</option>
+                <option key={d} value={d}>{formatDateDMY(d)}</option>
               ))}
             </select>
           </div>
@@ -131,7 +137,7 @@ export default function AttendanceHistory() {
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div>
               <p className="text-sm font-semibold text-slate-700">
-                {attendanceType === 'daily' ? 'Day Work Attendance' : `${courses.find(c => c.id === courseId)?.name} (Period ${period})`} · Section {section} · {date ? new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+                {attendanceType === 'daily' ? 'Day Work Attendance' : `${courses.find(c => c.id === courseId)?.name} (Period ${period})`} · Section {section} · {date ? formatDateDMY(date) : ''}
               </p>
               {modifiedCount > 0 && (
                 <p className="text-xs text-amber-600 font-medium mt-0.5">⚠️ {modifiedCount} unsaved change{modifiedCount > 1 ? 's' : ''} — save to create audit entries</p>
@@ -166,7 +172,7 @@ export default function AttendanceHistory() {
                       <td className="px-5 py-3 text-center">
                         <StatusBadge status={s.originalStatus || s.status} />
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3 text-center">
                         <div className="flex items-center justify-center gap-1 flex-wrap">
                           {STATUS_OPTIONS.map(st => (
                             <button key={st}
