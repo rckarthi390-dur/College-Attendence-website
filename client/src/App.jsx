@@ -69,7 +69,7 @@ function AppShell() {
   if (!user) return <LoginPage />;
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50 w-full overflow-x-hidden">
+    <div className="flex flex-col lg:flex-row min-h-screen lg:h-screen bg-slate-50 w-full lg:overflow-hidden">
       <Sidebar activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab)} />
       <main className="flex-1 min-w-0 overflow-y-auto">
         <div className="p-3 sm:p-5 lg:p-8 max-w-7xl mx-auto w-full">
