@@ -22,14 +22,14 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- React 18 & ReactDOM 18 -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- React 18 & ReactDOM 18 (Cloudflare CDN for fast global loading) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
   <!-- Babel Standalone for JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Recharts -->
-  <script src="https://unpkg.com/prop-types@15/prop-types.min.js"></script>
-  <script src="https://unpkg.com/recharts@2.10.1/umd/Recharts.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js" crossorigin></script>
+  <!-- Recharts & Prop-Types -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js" crossorigin></script>
   <!-- jsPDF & AutoTable for PDF Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -375,7 +375,36 @@
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div style="display:flex; justify-content:center; align-items:center; min-height:80vh; font-family:'Inter',sans-serif; color:#475569;">
+      <div style="text-align:center;">
+        <div style="font-size:32px; margin-bottom:8px;">🎓</div>
+        <div style="font-weight:700; font-size:16px; color:#1e293b;">G.T.N. Arts College Attendance Portal</div>
+        <div style="font-size:12px; color:#64748b; margin-top:4px;">Connecting to real-time database...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('error', function(e) {
+      console.error('Portal Runtime Error:', e.message);
+      const root = document.getElementById('root');
+      if (root && (root.innerHTML.includes('Connecting to real-time') || root.innerHTML.trim() === '')) {
+        root.innerHTML = `
+          <div style="display:flex; justify-content:center; align-items:center; min-height:80vh; font-family:'Inter',sans-serif; text-align:center; padding:20px;">
+            <div style="background:white; padding:28px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.08); max-width:380px; border:1px solid #e2e8f0;">
+              <div style="font-size:36px; margin-bottom:12px;">🧹</div>
+              <h3 style="margin:0 0 8px 0; color:#0f172a; font-size:16px; font-weight:800;">Portal Reset Required</h3>
+              <p style="color:#64748b; font-size:12px; margin-bottom:18px; line-height:1.5;">Click below to clear old browser memory & load the updated portal instantly.</p>
+              <button onclick="localStorage.clear(); sessionStorage.clear(); location.reload(true);" style="background:linear-gradient(to right, #2563eb, #4f46e5); color:white; border:none; padding:12px 24px; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; width:100%; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+                ⚡ Clear Memory & Reload Portal
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    });
+  </script>
 
   <!-- FIREBASE CONFIG — Paste your Firebase project config below -->
   <script>
@@ -2116,6 +2145,22 @@
         setDeptAddedNotice(`Department "${updateData.name}" updated successfully!`);
         setTimeout(() => setDeptAddedNotice(''), 4000);
         setEditingDept(null);
+      };
+
+      const [newC, setNewC] = useState({ name: '', code: '', department: 'Computer Science', credits: 4, faculty: '' });
+      const handleAddCourse = (e) => {
+        e.preventDefault();
+        if (!newC.name.trim() || !newC.code.trim()) return;
+        const courseData = {
+          ...newC,
+          code: newC.code.trim().toUpperCase(),
+          credits: Number(newC.credits) || 4,
+          faculty: newC.faculty || (facultyUsers[0] ? facultyUsers[0].id : 'fac-001')
+        };
+        addCourse(courseData);
+        setCourseAddedNotice(`Course "${courseData.name}" (${courseData.code}) added successfully!`);
+        setTimeout(() => setCourseAddedNotice(''), 4000);
+        setNewC({ name: '', code: '', department: newC.department || 'Computer Science', credits: 4, faculty: '' });
       };
 
       const [editingCourse, setEditingCourse] = useState(null);
