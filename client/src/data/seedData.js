@@ -36,7 +36,19 @@ const STORAGE_KEY = 'college_attendance_db';
 export function loadDB() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === 'object') {
+        if (!Array.isArray(parsed.users)) parsed.users = [];
+        if (!Array.isArray(parsed.courses)) parsed.courses = JSON.parse(JSON.stringify(SEED_DATA.courses || []));
+        if (!Array.isArray(parsed.departments)) parsed.departments = JSON.parse(JSON.stringify(SEED_DATA.departments || []));
+        if (!Array.isArray(parsed.attendance)) parsed.attendance = [];
+        if (!Array.isArray(parsed.auditLog)) parsed.auditLog = [];
+        if (!Array.isArray(parsed.leaves)) parsed.leaves = [];
+        if (!parsed.settings || typeof parsed.settings !== 'object') parsed.settings = JSON.parse(JSON.stringify(SEED_DATA.settings));
+        return parsed;
+      }
+    }
   } catch {}
   return JSON.parse(JSON.stringify(SEED_DATA));
 }

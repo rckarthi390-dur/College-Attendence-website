@@ -5,6 +5,7 @@ const NAV = {
   admin: [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'users', label: 'User Management', icon: '👥' },
+    { id: 'courses', label: 'Course Management', icon: '📚' },
     { id: 'audit', label: 'Master Audit Log', icon: '📋' },
     { id: 'leaves', label: 'Leave Requests', icon: '📝' },
     { id: 'settings', label: 'System Settings', icon: '⚙️' },

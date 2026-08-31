@@ -9,9 +9,9 @@ export default function CourseManagement() {
 
   const [activeTab, setActiveTab] = useState('courses');
 
-  const courses = getCourses();
-  const departments = getDepartments();
-  const facultyList = getUsers({ role: 'faculty' });
+  const courses = getCourses() || [];
+  const departments = getDepartments() || [];
+  const facultyList = getUsers({ role: 'faculty' }) || [];
 
   // Course Modal state
   const [courseModalOpen, setCourseModalOpen] = useState(false);
@@ -120,14 +120,15 @@ export default function CourseManagement() {
             <EmptyState icon="📚" title="No courses created yet" desc="Add courses to assign them to faculty and start tracking attendance." />
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courses.map(c => {
-                const assignedFaculty = facultyList.find(f => f.id === c.faculty);
+              {courses.map((c, idx) => {
+                if (!c) return null;
+                const assignedFaculty = facultyList.find(f => f && f.id === c.faculty);
                 return (
-                  <div key={c.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
+                  <div key={c.id || idx} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
                     <div>
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold font-mono text-xs">
-                          {c.code}
+                          {c.code || 'N/A'}
                         </span>
                         <span className="text-xs text-slate-400 font-medium">{c.credits} Credits</span>
                       </div>
@@ -171,14 +172,15 @@ export default function CourseManagement() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {departments.map(d => {
-              const hod = facultyList.find(f => f.id === d.hod);
+            {departments.map((d, idx) => {
+              if (!d) return null;
+              const hod = facultyList.find(f => f && f.id === d.hod);
               return (
-                <div key={d.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
+                <div key={d.id || idx} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold font-mono text-xs">
-                        {d.code}
+                        {d.code || 'N/A'}
                       </span>
                     </div>
                     <h3 className="text-lg font-bold text-slate-800">{d.name}</h3>
@@ -252,9 +254,10 @@ export default function CourseManagement() {
                 onChange={e => setCourseForm({ ...courseForm, department: e.target.value })}
                 className="input-field"
               >
-                {departments.map(d => (
-                  <option key={d.id} value={d.name}>{d.name}</option>
-                ))}
+                {(departments || []).map((d, idx) => {
+                  if (!d) return null;
+                  return <option key={d.id || idx} value={d.name || ''}>{d.name || 'Unnamed'}</option>;
+                })}
               </select>
             </div>
             <div>
@@ -265,9 +268,10 @@ export default function CourseManagement() {
                 className="input-field"
               >
                 <option value="">Unassigned</option>
-                {facultyList.map(f => (
-                  <option key={f.id} value={f.id}>{f.name} ({f.department})</option>
-                ))}
+                {(facultyList || []).map((f, idx) => {
+                  if (!f) return null;
+                  return <option key={f.id || idx} value={f.id || ''}>{f.name || 'Unnamed'} ({f.department || 'General'})</option>;
+                })}
               </select>
             </div>
           </div>
@@ -322,9 +326,10 @@ export default function CourseManagement() {
                 className="input-field"
               >
                 <option value="">None / Select Faculty</option>
-                {facultyList.map(f => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
-                ))}
+                {(facultyList || []).map((f, idx) => {
+                  if (!f) return null;
+                  return <option key={f.id || idx} value={f.id || ''}>{f.name || 'Unnamed'}</option>;
+                })}
               </select>
             </div>
           </div>

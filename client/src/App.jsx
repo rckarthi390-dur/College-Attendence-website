@@ -52,6 +52,7 @@ function RoleContent({ user, activeTab }) {
     switch (activeTab) {
       case 'dashboard': return <AdminDashboard />;
       case 'users':     return <UserManagement />;
+      case 'courses':   return <CourseManagement />;
       case 'audit':     return <AdminAuditLog />;
       case 'leaves':    return <AdminLeaves />;
       case 'settings':  return <SystemSettings />;
