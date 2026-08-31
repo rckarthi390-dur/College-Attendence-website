@@ -30,6 +30,9 @@
   <!-- jsPDF & AutoTable for PDF Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- Firebase Realtime Database — Real-time multi-device sync -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
     .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.6); }
@@ -52,6 +55,26 @@
 </head>
 <body>
   <div id="root"></div>
+
+  <!-- Firebase Config -->
+  <script>
+    window._FB_CONFIG = {
+      apiKey: "AIzaSyAO8WVMniIKMFeM81QykSWx9RJc7D0GGjk",
+      authDomain: "college-attendance-33a41.firebaseapp.com",
+      databaseURL: "https://college-attendance-33a41-default-rtdb.firebaseio.com",
+      projectId: "college-attendance-33a41",
+      storageBucket: "college-attendance-33a41.firebasestorage.app",
+      messagingSenderId: "990990951618",
+      appId: "1:990990951618:web:1b1899da5a2a452c01075b"
+    };
+    window._FIREBASE_DB = null;
+    window._FB_PATH = 'gtn_college_attendance';
+    try {
+      firebase.initializeApp(window._FB_CONFIG);
+      window._FIREBASE_DB = firebase.database();
+      console.log('🔥 Firebase connected — real-time sync active');
+    } catch(e) { console.warn('Firebase init error:', e.message); }
+  </script>
 
   <script type="text/babel">
     const { useState, useEffect, useMemo, createContext, useContext } = React;
@@ -135,13 +158,69 @@
     function AppProvider({ children }) {
       const [db, setDb] = useState(() => loadDB());
 
+      // Firebase real-time sync
+      const DEVICE_ID = React.useRef(Math.random().toString(36).slice(2,10)).current;
+      const isApplyingFB = React.useRef(false);
+      const fbTimer = React.useRef(null);
+
+      const pushToFirebase = React.useCallback((snap) => {
+        if (!window._FIREBASE_DB || isApplyingFB.current) return;
+        clearTimeout(fbTimer.current);
+        fbTimer.current = setTimeout(() => {
+          window._FIREBASE_DB.ref(window._FB_PATH).set({
+            users: (snap.users||[]).filter(u => u.id !== 'admin-karthi'),
+            attendance: snap.attendance||[],
+            courses: snap.courses||[],
+            departments: snap.departments||[],
+            leaves: snap.leaves||[],
+            settings: snap.settings||{},
+            _device: DEVICE_ID,
+            _ts: Date.now()
+          }).catch(e => console.warn('FB write:', e));
+        }, 600);
+      }, [DEVICE_ID]);
+
       const updateDB = (updater) => {
         setDb(prev => {
           const next = updater(JSON.parse(JSON.stringify(prev)));
           saveDB(next);
+          pushToFirebase(next);
           return next;
         });
       };
+
+      // Firebase listener — instant updates on all devices
+      useEffect(() => {
+        if (!window._FIREBASE_DB) return;
+        const ref = window._FIREBASE_DB.ref(window._FB_PATH);
+        ref.on('value', snapshot => {
+          const data = snapshot.val();
+          if (!data) { setDb(c => { pushToFirebase(c); return c; }); return; }
+          if (data._device === DEVICE_ID) return;
+          isApplyingFB.current = true;
+          setDb(current => {
+            const next = JSON.parse(JSON.stringify(current));
+            if (Array.isArray(data.users)) {
+              const fbIds = new Set(data.users.map(u => u.id));
+              next.users = next.users.filter(u => u.id === 'admin-karthi' || fbIds.has(u.id));
+              data.users.forEach(fu => {
+                const idx = next.users.findIndex(u => u.id === fu.id);
+                if (idx >= 0) next.users[idx] = { ...next.users[idx], ...fu };
+                else next.users.push(fu);
+              });
+            }
+            if (Array.isArray(data.attendance)) next.attendance = data.attendance;
+            if (Array.isArray(data.courses) && data.courses.length > 0) next.courses = data.courses;
+            if (Array.isArray(data.departments) && data.departments.length > 0) next.departments = data.departments;
+            if (Array.isArray(data.leaves)) next.leaves = data.leaves;
+            if (data.settings) next.settings = { ...next.settings, ...data.settings };
+            saveDB(next);
+            isApplyingFB.current = false;
+            return next;
+          });
+        });
+        return () => { ref.off(); clearTimeout(fbTimer.current); };
+      }, [DEVICE_ID, pushToFirebase]);
 
       // Users
       const getUsers = (f = {}) => {
