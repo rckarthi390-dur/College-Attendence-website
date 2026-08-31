@@ -119,17 +119,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* Mode-specific content */}
-      {activeMode === 'period' ? (
-        <div className="mb-8">
-          {stats.length === 0 ? (
-            <EmptyState icon="📭" title="No attendance records yet" desc="Your attendance will appear here once your faculty marks it." />
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stats.map(s => <SubjectCard key={s.courseId} stat={s} threshold={threshold} />)}
-            </div>
-          )}
-        </div>
-      ) : (
+      {activeMode === 'period' ? null : (
         <div className="mb-8 bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
           <h2 className="text-base font-bold text-slate-800 mb-4">💼 Daily Work Roster Status</h2>
           {dailyRecords.length === 0 ? (
