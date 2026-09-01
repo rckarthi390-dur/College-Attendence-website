@@ -1,19 +1,70 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { loadDB, saveDB } from '../data/seedData';
 import { v4 as uuidv4 } from 'uuid';
 
 const AppContext = createContext(null);
 
+const BACKEND_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  ? 'http://localhost:5000'
+  : 'https://college-attendence-website.onrender.com';
+
 export function AppProvider({ children }) {
   const [db, setDb] = useState(() => loadDB());
+
+  // Cloud Synchronization Handler
+  const syncWithCloud = useCallback(async (overrideState = null) => {
+    try {
+      if (overrideState) {
+        // Push local changes to cloud
+        await fetch(`${BACKEND_URL}/api/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(overrideState),
+        });
+      } else {
+        // Pull latest changes from cloud
+        const res = await fetch(`${BACKEND_URL}/api/sync`);
+        if (res.ok) {
+          const remoteData = await res.json();
+          if (remoteData && remoteData.users && remoteData.users.length > 0) {
+            setDb(remoteData);
+            saveDB(remoteData);
+          } else {
+            // Initialize empty remote with current local data
+            const current = loadDB();
+            await fetch(`${BACKEND_URL}/api/sync`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(current),
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Cloud sync background warning:', err);
+    }
+  }, []);
+
+  // Periodic and on-focus auto synchronization
+  useEffect(() => {
+    syncWithCloud();
+    const interval = setInterval(() => syncWithCloud(), 10000);
+    const onFocus = () => syncWithCloud();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [syncWithCloud]);
 
   const updateDB = useCallback((updater) => {
     setDb(prev => {
       const next = updater(JSON.parse(JSON.stringify(prev)));
       saveDB(next);
+      syncWithCloud(next);
       return next;
     });
-  }, []);
+  }, [syncWithCloud]);
 
   // ── Users ─────────────────────────────────────
   const getUsers = (filters = {}) => {

@@ -1,7 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { loadDB } from '../data/seedData';
+import { loadDB, saveDB } from '../data/seedData';
 
 const AuthContext = createContext(null);
+
+const BACKEND_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  ? 'http://localhost:5000'
+  : 'https://college-attendence-website.onrender.com';
 
 const normalizeToYMD = (dateStr) => {
   if (!dateStr) return '';
@@ -27,9 +31,36 @@ export function AuthProvider({ children }) {
     } catch { return null; }
   });
 
-  const login = (email, password) => {
-    const db = loadDB();
-    const found = db.users.find(u => u.email.toLowerCase() === email.toLowerCase().trim() && u.password === password);
+  // Pull latest users on initial load
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/sync`)
+      .then(r => r.ok ? r.json() : null)
+      .then(remoteData => {
+        if (remoteData && remoteData.users && remoteData.users.length > 0) {
+          saveDB(remoteData);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const login = async (email, password) => {
+    let db = loadDB();
+    let found = db.users.find(u => u.email.toLowerCase() === email.toLowerCase().trim() && u.password === password);
+
+    if (!found) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/sync`);
+        if (res.ok) {
+          const remoteData = await res.json();
+          if (remoteData && remoteData.users) {
+            saveDB(remoteData);
+            db = remoteData;
+            found = db.users.find(u => u.email.toLowerCase() === email.toLowerCase().trim() && u.password === password);
+          }
+        }
+      } catch (e) {}
+    }
+
     if (!found) throw new Error('Invalid email or password.');
     const { password: _pwd, ...safe } = found;
     setUser(safe);
@@ -37,13 +68,32 @@ export function AuthProvider({ children }) {
     return safe;
   };
 
-  const studentLogin = (rollNumber, dob) => {
-    const db = loadDB();
-    const found = db.users.find(u => 
+  const studentLogin = async (rollNumber, dob) => {
+    let db = loadDB();
+    let found = db.users.find(u => 
       u.role === 'student' && 
       u.rollNumber && 
       u.rollNumber.toLowerCase().trim() === rollNumber.toLowerCase().trim()
     );
+
+    if (!found) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/sync`);
+        if (res.ok) {
+          const remoteData = await res.json();
+          if (remoteData && remoteData.users) {
+            saveDB(remoteData);
+            db = remoteData;
+            found = db.users.find(u => 
+              u.role === 'student' && 
+              u.rollNumber && 
+              u.rollNumber.toLowerCase().trim() === rollNumber.toLowerCase().trim()
+            );
+          }
+        }
+      } catch (e) {}
+    }
+
     if (!found) throw new Error(`Student with Roll Number "${rollNumber}" not found.`);
     
     const storedDob = normalizeToYMD(found.dob || '');

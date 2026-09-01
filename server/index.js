@@ -10,12 +10,37 @@ const leavesRoutes = require('./routes/leaves');
 const auditRoutes = require('./routes/audit');
 const settingsRoutes = require('./routes/settings');
 const departmentsRoutes = require('./routes/departments');
+const db = require('./middleware/db');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// Full Database Synchronization Endpoints (Cross-Device Cloud Sync)
+app.get('/api/sync', (req, res) => {
+  try {
+    const data = db.getState();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read database state' });
+  }
+});
+
+app.post('/api/sync', (req, res) => {
+  try {
+    const incoming = req.body;
+    if (incoming && typeof incoming === 'object' && incoming.users) {
+      db.setState(incoming).write();
+      res.json({ success: true, message: 'Database state synchronized successfully' });
+    } else {
+      res.status(400).json({ error: 'Invalid database payload' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to write database state' });
+  }
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
