@@ -125,12 +125,13 @@ export default function StudentDashboard() {
           {dailyRecords.length === 0 ? (
             <EmptyState icon="📭" title="No daily attendance marked yet" desc="Your daily work attendance will appear here once marked." />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
               {[
                 { label: 'Present / OD Days', value: dailyStats.present, color: 'bg-emerald-50 text-emerald-700' },
                 { label: 'Absent Days', value: dailyStats.absent, color: 'bg-red-50 text-red-700' },
                 { label: 'Late Days', value: dailyStats.late, color: 'bg-amber-50 text-amber-700' },
-                { label: 'Total Duty Days', value: dailyStats.total, color: 'bg-blue-50 text-blue-700' }
+                { label: 'Recorded Days', value: dailyStats.total, color: 'bg-blue-50 text-blue-700' },
+                { label: 'College Working Days', value: dailyStats.workingDays || 90, color: 'bg-indigo-50 text-indigo-700' }
               ].map(item => (
                 <div key={item.label} className={`p-4 rounded-2xl text-center ${item.color}`}>
                   <p className="text-2xl font-black">{item.value}</p>

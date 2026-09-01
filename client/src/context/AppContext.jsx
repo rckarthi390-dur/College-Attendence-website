@@ -246,6 +246,68 @@ export function AppProvider({ children }) {
           saved.push(rec);
         }
       });
+
+      // Automatically calculate and store Daily Work attendance from period-wise sessions
+      if (attendanceType === 'period') {
+        const studentIds = Array.from(new Set(records.map(r => r.studentId)));
+        studentIds.forEach(stId => {
+          const dayPeriods = d.attendance.filter(a => 
+            a.studentId === stId && 
+            a.date === date && 
+            a.attendanceType !== 'daily' && 
+            a.courseId !== 'daily'
+          );
+          if (dayPeriods.length > 0) {
+            const presCount = dayPeriods.filter(p => p.status === 'present' || p.status === 'on-duty').length;
+            const odCount = dayPeriods.filter(p => p.status === 'on-duty').length;
+            const lateCount = dayPeriods.filter(p => p.status === 'late').length;
+            const absCount = dayPeriods.filter(p => p.status === 'absent').length;
+            const totalP = dayPeriods.length;
+
+            let dayStatus = 'present';
+            if (odCount === totalP || (odCount > 0 && absCount === 0 && lateCount === 0)) {
+              dayStatus = 'on-duty';
+            } else if (presCount >= Math.ceil(totalP / 2)) {
+              dayStatus = 'present';
+            } else if (lateCount > 0 && (presCount + lateCount) >= Math.ceil(totalP / 2)) {
+              dayStatus = 'late';
+            } else {
+              dayStatus = 'absent';
+            }
+
+            const dailyIdx = d.attendance.findIndex(a => 
+              a.studentId === stId && 
+              a.date === date && 
+              (a.attendanceType === 'daily' || a.courseId === 'daily')
+            );
+
+            if (dailyIdx >= 0) {
+              d.attendance[dailyIdx] = {
+                ...d.attendance[dailyIdx],
+                status: dayStatus,
+                markedBy: markedBy || 'Auto-computed from Periods',
+                markedAt: new Date().toISOString(),
+                attendanceType: 'daily',
+                courseId: 'daily',
+                autoCalculated: true
+              };
+            } else {
+              d.attendance.push({
+                id: `att-daily-${uuidv4().slice(0, 8)}`,
+                studentId: stId,
+                courseId: 'daily',
+                date,
+                status: dayStatus,
+                markedBy: markedBy || 'Auto-computed from Periods',
+                markedAt: new Date().toISOString(),
+                attendanceType: 'daily',
+                autoCalculated: true
+              });
+            }
+          }
+        });
+      }
+
       return d;
     });
     return { saved, auditEntries };
@@ -274,6 +336,54 @@ export function AppProvider({ children }) {
           };
           d.auditLog.push(auditEntry);
           d.attendance[idx] = { ...old, status, markedBy: modifiedBy, markedAt: new Date().toISOString() };
+
+          // If a period record is modified, re-compute the daily attendance for that date
+          if (old.attendanceType !== 'daily' && old.courseId !== 'daily') {
+            const stId = old.studentId;
+            const date = old.date;
+            const dayPeriods = d.attendance.filter(a => 
+              a.studentId === stId && 
+              a.date === date && 
+              a.attendanceType !== 'daily' && 
+              a.courseId !== 'daily'
+            );
+            if (dayPeriods.length > 0) {
+              const presCount = dayPeriods.filter(p => p.status === 'present' || p.status === 'on-duty').length;
+              const odCount = dayPeriods.filter(p => p.status === 'on-duty').length;
+              const lateCount = dayPeriods.filter(p => p.status === 'late').length;
+              const absCount = dayPeriods.filter(p => p.status === 'absent').length;
+              const totalP = dayPeriods.length;
+
+              let dayStatus = 'present';
+              if (odCount === totalP || (odCount > 0 && absCount === 0 && lateCount === 0)) {
+                dayStatus = 'on-duty';
+              } else if (presCount >= Math.ceil(totalP / 2)) {
+                dayStatus = 'present';
+              } else if (lateCount > 0 && (presCount + lateCount) >= Math.ceil(totalP / 2)) {
+                dayStatus = 'late';
+              } else {
+                dayStatus = 'absent';
+              }
+
+              const dailyIdx = d.attendance.findIndex(a => 
+                a.studentId === stId && 
+                a.date === date && 
+                (a.attendanceType === 'daily' || a.courseId === 'daily')
+              );
+
+              if (dailyIdx >= 0) {
+                d.attendance[dailyIdx] = {
+                  ...d.attendance[dailyIdx],
+                  status: dayStatus,
+                  markedBy: modifiedBy || 'Auto-computed from Periods',
+                  markedAt: new Date().toISOString(),
+                  attendanceType: 'daily',
+                  courseId: 'daily',
+                  autoCalculated: true
+                };
+              }
+            }
+          }
         }
       }
       return d;
@@ -313,9 +423,11 @@ export function AppProvider({ children }) {
 
     const totalDailyRecs = dailyRecords.length;
     const presentDailyRecs = dailyRecords.filter(r => r.status === 'present' || r.status === 'on-duty').length;
+    const configuredWorkingDays = db.settings?.totalWorkingDays || 90;
     const dailyPercentage = totalDailyRecs > 0 ? Math.round((presentDailyRecs / totalDailyRecs) * 100) : 0;
     const dailyStats = {
       total: totalDailyRecs,
+      workingDays: configuredWorkingDays,
       present: presentDailyRecs,
       absent: dailyRecords.filter(r => r.status === 'absent').length,
       late: dailyRecords.filter(r => r.status === 'late').length,

@@ -15,6 +15,7 @@ export default function SystemSettings() {
   const [academicYear, setAcademicYear] = useState(settings.academicYear || '');
   const [attendanceThreshold, setAttendanceThreshold] = useState(settings.attendanceThreshold || 75);
   const [lateMarkWindow, setLateMarkWindow] = useState(settings.lateMarkWindow || 30);
+  const [totalWorkingDays, setTotalWorkingDays] = useState(settings.totalWorkingDays || 90);
   const [saving, setSaving] = useState(false);
 
   const handleSave = (e) => {
@@ -26,6 +27,7 @@ export default function SystemSettings() {
         academicYear,
         attendanceThreshold: Number(attendanceThreshold),
         lateMarkWindow: Number(lateMarkWindow),
+        totalWorkingDays: Number(totalWorkingDays) || 90,
       });
       toast.success('System settings saved successfully!');
     } catch (err) {
@@ -130,16 +132,70 @@ export default function SystemSettings() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Late Mark Grace Window (Minutes)</label>
-              <input
-                type="number"
-                min={5}
-                max={60}
-                value={lateMarkWindow}
-                onChange={e => setLateMarkWindow(e.target.value)}
-                className="input-field"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Late Mark Grace Window (Minutes)</label>
+                <input
+                  type="number"
+                  min={5}
+                  max={60}
+                  value={lateMarkWindow}
+                  onChange={e => setLateMarkWindow(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Total College Working Days (Manual Target)
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTotalWorkingDays(prev => Math.max(1, Number(prev) - 5))}
+                    className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors"
+                    title="Decrease by 5 days"
+                  >
+                    -5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTotalWorkingDays(prev => Math.max(1, Number(prev) - 1))}
+                    className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors"
+                    title="Decrease by 1 day"
+                  >
+                    -1
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={totalWorkingDays}
+                    onChange={e => setTotalWorkingDays(e.target.value)}
+                    required
+                    className="input-field text-center font-bold text-indigo-600 flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setTotalWorkingDays(prev => Number(prev) + 1)}
+                    className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors"
+                    title="Increase by 1 day"
+                  >
+                    +1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTotalWorkingDays(prev => Number(prev) + 5)}
+                    className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors"
+                    title="Increase by 5 days"
+                  >
+                    +5
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Adjust the total working days for calculating official Day Work attendance metrics.
+                </p>
+              </div>
             </div>
 
             <div className="pt-4 border-t border-slate-100 flex justify-end">

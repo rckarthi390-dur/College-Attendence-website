@@ -5,6 +5,7 @@ export const SEED_DATA = {
     institutionName: "G.T.N. Arts College",
     academicYear: "2024-25",
     lateMarkWindow: 30,
+    totalWorkingDays: 90,
   },
 
   users: [
