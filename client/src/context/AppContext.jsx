@@ -22,37 +22,13 @@ export function AppProvider({ children }) {
           body: JSON.stringify(overrideState),
         });
       } else {
-        // Pull latest changes from cloud
-        const res = await fetch(`${BACKEND_URL}/api/sync`);
+        // Pull latest authoritative changes from cloud
+        const res = await fetch(`${BACKEND_URL}/api/sync`, { cache: 'no-cache' });
         if (res.ok) {
           const remoteData = await res.json();
-          if (remoteData && remoteData.users && remoteData.users.length > 0) {
-            const currentLocal = loadDB();
-            const mergedUsers = [...remoteData.users];
-            (currentLocal.users || []).forEach(localUser => {
-              const exists = mergedUsers.some(ru => 
-                (ru.id && localUser.id && ru.id === localUser.id) || 
-                (ru.email && localUser.email && ru.email.toLowerCase() === localUser.email.toLowerCase()) ||
-                (ru.rollNumber && localUser.rollNumber && ru.rollNumber.toUpperCase() === localUser.rollNumber.toUpperCase())
-              );
-              if (!exists) mergedUsers.push(localUser);
-            });
-            const mergedDb = {
-              ...remoteData,
-              users: mergedUsers,
-              departments: (remoteData.departments && remoteData.departments.length > 0) ? remoteData.departments : currentLocal.departments,
-              courses: (remoteData.courses && remoteData.courses.length > 0) ? remoteData.courses : currentLocal.courses,
-            };
-            setDb(mergedDb);
-            saveDB(mergedDb);
-          } else {
-            // Initialize empty remote with current local data
-            const current = loadDB();
-            await fetch(`${BACKEND_URL}/api/sync`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(current),
-            });
+          if (remoteData && Array.isArray(remoteData.users)) {
+            setDb(remoteData);
+            saveDB(remoteData);
           }
         }
       }

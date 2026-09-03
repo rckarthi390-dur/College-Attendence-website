@@ -76,20 +76,9 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${BACKEND_URL}/api/sync`, { cache: 'no-cache' });
       if (res.ok) {
         const remoteData = await res.json();
-        if (remoteData && remoteData.users && remoteData.users.length > 0) {
-          const currentLocal = loadDB();
-          const mergedUsers = [...remoteData.users];
-          (currentLocal.users || []).forEach(localUser => {
-            const exists = mergedUsers.some(ru => 
-              (ru.id && localUser.id && ru.id === localUser.id) || 
-              (ru.email && localUser.email && ru.email.toLowerCase() === localUser.email.toLowerCase()) ||
-              (ru.rollNumber && localUser.rollNumber && cleanRoll(ru.rollNumber) === cleanRoll(localUser.rollNumber))
-            );
-            if (!exists) mergedUsers.push(localUser);
-          });
-          const fullData = { ...remoteData, users: mergedUsers };
-          saveDB(fullData);
-          return fullData;
+        if (remoteData && Array.isArray(remoteData.users)) {
+          saveDB(remoteData);
+          return remoteData;
         }
       }
     } catch (e) {

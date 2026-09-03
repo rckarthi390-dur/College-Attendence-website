@@ -10,17 +10,8 @@ export const SEED_DATA = {
 
   users: [
     { id: "admin-karthi", name: "karthi", email: "karthi@gmail.com", password: "karthi1234", role: "admin", department: "Administration", phone: "9876543219" },
-    { id: "admin-default", name: "Administrator", email: "admin@college.edu", password: "password", role: "admin", department: "Administration", phone: "9876543210" },
-    { id: "fac-001", name: "Anand Kumar", email: "anand@college.edu", password: "password", role: "faculty", department: "Computer Science", phone: "9876543210" },
-    { id: "fac-002", name: "Dr. Priya Sharma", email: "priya@college.edu", password: "password", role: "faculty", department: "Electronics", phone: "9876543212" },
-    { id: "fac-003", name: "Prof. Suresh R", email: "suresh@college.edu", password: "password", role: "faculty", department: "Mechanical", phone: "9876543213" },
-    { id: "fac-004", name: "Dr. Rajesh K", email: "rajesh@college.edu", password: "password", role: "faculty", department: "Computer Science", phone: "9876543214" },
     { id: "fac-005", name: "jamuna", email: "jamuna@gmail.com", password: "password", role: "faculty", department: "Computer Science", phone: "9876543216" },
-    { id: "stu-001", name: "Arjun Prasad", email: "arjun@student.edu", password: "password", role: "student", department: "Computer Science", rollNumber: "CS21001", dob: "2004-01-01", section: "A", year: 3, phone: "9876543211" },
-    { id: "stu-002", name: "Monika Merlin", email: "monikabritto21@gmail.com", password: "password", role: "student", department: "Computer Science", rollNumber: "24UCSB005", dob: "2004-08-31", section: "B", year: 3, phone: "63795 00117" },
-    { id: "stu-003", name: "Karthikeyan S", email: "rckarthi390@gmail.com", password: "password", role: "student", department: "Computer Science", rollNumber: "24UCSB025", dob: "2007-04-12", section: "B", year: 3, phone: "9876543217" },
-    { id: "stu-004", name: "Student 24UCSB027", email: "student27@gmail.com", password: "password", role: "student", department: "Computer Science", rollNumber: "24UCSB027", dob: "2006-12-02", section: "B", year: 3, phone: "9876543218" },
-    { id: "stu-005", name: "Kavya M", email: "kavya@student.edu", password: "password", role: "student", department: "Computer Science", rollNumber: "CS21002", dob: "2004-03-15", section: "A", year: 3, phone: "9876543215" }
+    { id: "stu-003", name: "Karthikeyan S", email: "rckarthi390@gmail.com", password: "password", role: "student", department: "Computer Science", rollNumber: "24UCSB025", dob: "2007-04-12", section: "B", year: 3, phone: "9876543217" }
   ],
 
   departments: [
