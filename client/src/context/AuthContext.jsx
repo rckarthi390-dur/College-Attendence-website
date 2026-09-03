@@ -7,20 +7,47 @@ const BACKEND_URL = typeof window !== 'undefined' && window.location.hostname ==
   ? 'http://localhost:5000'
   : 'https://college-attendence-website.onrender.com';
 
+const cleanRoll = (str) => (str || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+
 const normalizeToYMD = (dateStr) => {
   if (!dateStr) return '';
-  const clean = dateStr.replace(/\s/g, '');
-  if (clean.includes('-')) {
-    const parts = clean.split('-');
-    if (parts[0].length === 4) return clean; // YYYY-MM-DD
-    return `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
-  }
+  const clean = dateStr.toString().trim().replace(/\s/g, '');
+  
   if (clean.includes('/')) {
     const parts = clean.split('/');
-    if (parts[2].length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`; // DD/MM/YYYY
-    return `${parts[0]}-${parts[1]}-${parts[2]}`; // YYYY/MM/DD
+    if (parts.length === 3) {
+      if (parts[2].length === 4) {
+        const d = parts[0].padStart(2, '0');
+        const m = parts[1].padStart(2, '0');
+        const y = parts[2];
+        return `${y}-${m}-${d}`;
+      } else if (parts[0].length === 4) {
+        const y = parts[0];
+        const m = parts[1].padStart(2, '0');
+        const d = parts[2].padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+    }
   }
-  return dateStr;
+
+  if (clean.includes('-')) {
+    const parts = clean.split('-');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        const y = parts[0];
+        const m = parts[1].padStart(2, '0');
+        const d = parts[2].padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      } else if (parts[2].length === 4) {
+        const d = parts[0].padStart(2, '0');
+        const m = parts[1].padStart(2, '0');
+        const y = parts[2];
+        return `${y}-${m}-${d}`;
+      }
+    }
+  }
+
+  return clean;
 };
 
 const verifyPassword = (userObj, enteredPassword) => {
@@ -84,12 +111,12 @@ export function AuthProvider({ children }) {
 
   const studentLogin = async (rollNumber, dob) => {
     let db = loadDB();
-    const cleanRoll = (rollNumber || '').toLowerCase().trim();
+    const targetRoll = cleanRoll(rollNumber);
 
     let found = db.users.find(u => 
       u.role === 'student' && 
       u.rollNumber && 
-      u.rollNumber.toLowerCase().trim() === cleanRoll
+      cleanRoll(u.rollNumber) === targetRoll
     );
 
     if (!found) {
@@ -103,7 +130,7 @@ export function AuthProvider({ children }) {
             found = db.users.find(u => 
               u.role === 'student' && 
               u.rollNumber && 
-              u.rollNumber.toLowerCase().trim() === cleanRoll
+              cleanRoll(u.rollNumber) === targetRoll
             );
           }
         }
