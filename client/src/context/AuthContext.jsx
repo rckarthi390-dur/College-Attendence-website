@@ -71,35 +71,48 @@ export function AuthProvider({ children }) {
     } catch { return null; }
   });
 
+  const fetchFreshCloudDB = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sync`, { cache: 'no-cache' });
+      if (res.ok) {
+        const remoteData = await res.json();
+        if (remoteData && remoteData.users && remoteData.users.length > 0) {
+          const currentLocal = loadDB();
+          const mergedUsers = [...remoteData.users];
+          (currentLocal.users || []).forEach(localUser => {
+            const exists = mergedUsers.some(ru => 
+              (ru.id && localUser.id && ru.id === localUser.id) || 
+              (ru.email && localUser.email && ru.email.toLowerCase() === localUser.email.toLowerCase()) ||
+              (ru.rollNumber && localUser.rollNumber && cleanRoll(ru.rollNumber) === cleanRoll(localUser.rollNumber))
+            );
+            if (!exists) mergedUsers.push(localUser);
+          });
+          const fullData = { ...remoteData, users: mergedUsers };
+          saveDB(fullData);
+          return fullData;
+        }
+      }
+    } catch (e) {
+      console.warn('Cloud sync background warning:', e);
+    }
+    return loadDB();
+  };
+
   // Pull latest users on initial load
   useEffect(() => {
-    fetch(`${BACKEND_URL}/api/sync`)
-      .then(r => r.ok ? r.json() : null)
-      .then(remoteData => {
-        if (remoteData && remoteData.users && remoteData.users.length > 0) {
-          saveDB(remoteData);
-        }
-      })
-      .catch(() => {});
+    fetchFreshCloudDB();
   }, []);
 
   const login = async (email, password) => {
-    let db = loadDB();
     const cleanEmail = (email || '').toLowerCase().trim();
+    if (!cleanEmail) throw new Error('Please enter your email address.');
+
+    let db = loadDB();
     let found = db.users.find(u => u.email && u.email.toLowerCase().trim() === cleanEmail && verifyPassword(u, password));
 
     if (!found) {
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/sync`);
-        if (res.ok) {
-          const remoteData = await res.json();
-          if (remoteData && remoteData.users) {
-            saveDB(remoteData);
-            db = remoteData;
-            found = db.users.find(u => u.email && u.email.toLowerCase().trim() === cleanEmail && verifyPassword(u, password));
-          }
-        }
-      } catch (e) {}
+      db = await fetchFreshCloudDB();
+      found = db.users.find(u => u.email && u.email.toLowerCase().trim() === cleanEmail && verifyPassword(u, password));
     }
 
     if (!found) throw new Error('Invalid email or password.');
@@ -110,9 +123,10 @@ export function AuthProvider({ children }) {
   };
 
   const studentLogin = async (rollNumber, dob) => {
-    let db = loadDB();
     const targetRoll = cleanRoll(rollNumber);
+    if (!targetRoll) throw new Error('Please enter a valid Roll Number.');
 
+    let db = loadDB();
     let found = db.users.find(u => 
       u.role === 'student' && 
       u.rollNumber && 
@@ -120,29 +134,20 @@ export function AuthProvider({ children }) {
     );
 
     if (!found) {
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/sync`);
-        if (res.ok) {
-          const remoteData = await res.json();
-          if (remoteData && remoteData.users) {
-            saveDB(remoteData);
-            db = remoteData;
-            found = db.users.find(u => 
-              u.role === 'student' && 
-              u.rollNumber && 
-              cleanRoll(u.rollNumber) === targetRoll
-            );
-          }
-        }
-      } catch (e) {}
+      db = await fetchFreshCloudDB();
+      found = db.users.find(u => 
+        u.role === 'student' && 
+        u.rollNumber && 
+        cleanRoll(u.rollNumber) === targetRoll
+      );
     }
 
-    if (!found) throw new Error(`Student with Roll Number "${rollNumber}" not found.`);
+    if (!found) throw new Error(`Student with Roll Number "${rollNumber}" not found. Please check your roll number.`);
     
     const storedDob = normalizeToYMD(found.dob || '');
     const inputDob = normalizeToYMD(dob || '');
     if (storedDob && inputDob && storedDob !== inputDob) {
-      throw new Error('Incorrect Date of Birth.');
+      throw new Error('Incorrect Date of Birth (DOB).');
     }
     
     const { password: _pwd, ...safe } = found;
