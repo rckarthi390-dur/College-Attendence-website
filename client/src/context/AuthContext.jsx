@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { loadDB, saveDB } from '../data/seedData';
+import { loadDB, saveDB, safeStorage } from '../data/seedData';
 
 const AuthContext = createContext(null);
 
@@ -66,7 +66,7 @@ const verifyPassword = (userObj, enteredPassword) => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
-      const stored = localStorage.getItem('college_auth_user');
+      const stored = safeStorage.getItem('college_auth_user');
       return stored ? JSON.parse(stored) : null;
     } catch { return null; }
   });
@@ -107,7 +107,7 @@ export function AuthProvider({ children }) {
     if (!found) throw new Error('Invalid email or password.');
     const { password: _pwd, ...safe } = found;
     setUser(safe);
-    localStorage.setItem('college_auth_user', JSON.stringify(safe));
+    safeStorage.setItem('college_auth_user', JSON.stringify(safe));
     return safe;
   };
 
@@ -141,24 +141,24 @@ export function AuthProvider({ children }) {
     
     const { password: _pwd, ...safe } = found;
     setUser(safe);
-    localStorage.setItem('college_auth_user', JSON.stringify(safe));
+    safeStorage.setItem('college_auth_user', JSON.stringify(safe));
     return safe;
   };
 
   const demoLogin = (role) => {
-    const roleMap = { admin: 'admin@college.edu', faculty: 'anand@college.edu', student: 'arjun@student.edu' };
+    const roleMap = { admin: 'karthi@gmail.com', faculty: 'jamuna@gmail.com', student: 'rckarthi390@gmail.com' };
     const db = loadDB();
     const found = db.users.find(u => u.email === roleMap[role]);
-    if (!found) throw new Error('Demo user not found.');
+    if (!found) throw new Error('User account not found.');
     const { password: _pwd, ...safe } = found;
     setUser(safe);
-    localStorage.setItem('college_auth_user', JSON.stringify(safe));
+    safeStorage.setItem('college_auth_user', JSON.stringify(safe));
     return safe;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('college_auth_user');
+    safeStorage.removeItem('college_auth_user');
   };
 
   return (

@@ -36,9 +36,40 @@ export const SEED_DATA = {
 
 const STORAGE_KEY = 'college_attendance_db';
 
+const memoryStore = {};
+
+export const safeStorage = {
+  getItem: (key) => {
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
+    } catch (e) {}
+    return memoryStore[key] || null;
+  },
+  setItem: (key, val) => {
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+        window.localStorage.setItem(key, val);
+        return;
+      }
+    } catch (e) {}
+    memoryStore[key] = String(val);
+  },
+  removeItem: (key) => {
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+        window.localStorage.removeItem(key);
+        return;
+      }
+    } catch (e) {}
+    delete memoryStore[key];
+  }
+};
+
 export function loadDB() {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = safeStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
       if (parsed && typeof parsed === 'object') {
@@ -57,9 +88,13 @@ export function loadDB() {
 }
 
 export function saveDB(db) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  try {
+    safeStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  } catch {}
 }
 
 export function resetDB() {
-  localStorage.removeItem(STORAGE_KEY);
+  try {
+    safeStorage.removeItem(STORAGE_KEY);
+  } catch {}
 }
